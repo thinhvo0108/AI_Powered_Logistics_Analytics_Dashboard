@@ -95,6 +95,12 @@ export interface FilterOptions {
   dateRange: { min: string; max: string };
 }
 
+export interface HealthResponse {
+  status: string;
+  llmProvider: string;
+  timestamp: string;
+}
+
 export interface QueryHistoryItem {
   id: string;
   query: string;

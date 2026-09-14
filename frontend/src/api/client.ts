@@ -4,6 +4,7 @@ import type {
   FilterOptions,
   ForecastParams,
   ForecastResponse,
+  HealthResponse,
   KPIData,
   QueryResponse,
 } from "@/types/logistics";
@@ -63,6 +64,10 @@ function filtersToSearchParams(
   }
 
   return params;
+}
+
+export function fetchHealth(): Promise<HealthResponse> {
+  return apiFetch<HealthResponse>("/health");
 }
 
 export function fetchKPIs(filters: Filters): Promise<KPIData> {
