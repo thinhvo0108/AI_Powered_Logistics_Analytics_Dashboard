@@ -23,6 +23,7 @@ export interface ChartSeries {
   key: string;
   label: string;
   color: string;
+  type?: "bar" | "line";
 }
 
 export type ChartType = "line" | "bar" | "area" | "pie" | "composed";
