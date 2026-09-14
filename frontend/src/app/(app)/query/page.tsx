@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Sparkles, TrendingUp } from "lucide-react";
+import { Loader2, Plus, Sparkles, TrendingUp } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { QueryInterface } from "@/components/query/QueryInterface";
 import { QueryResult } from "@/components/query/QueryResult";
@@ -136,14 +136,21 @@ export default function QueryPage() {
 
   const [input, setInput] = useState("");
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
-  // One id per conversation (this page session) — every turn rolls into the
-  // same sidebar history entry instead of creating a new one each time.
-  const [conversationId] = useState(() => crypto.randomUUID());
+  // One id per conversation — every turn rolls into the same sidebar history
+  // entry instead of creating a new one each time. Starting a new conversation
+  // swaps this for a fresh id, same as reloading the page.
+  const [conversationId, setConversationId] = useState(() => crypto.randomUUID());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [conversation.length]);
+
+  const startNewConversation = () => {
+    setConversation([]);
+    setConversationId(crypto.randomUUID());
+    setInput("");
+  };
 
   const runAndSubmit = (query: string) => {
     setInput("");
@@ -189,10 +196,21 @@ export default function QueryPage() {
       <Header
         title="AI Query"
         right={
-          <ContextUsageBadge
-            usedTurns={Math.min(conversation.length, MAX_HISTORY_TURNS)}
-            maxTurns={MAX_HISTORY_TURNS}
-          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={startNewConversation}
+              disabled={isPending || conversation.length === 0}
+              className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New conversation
+            </button>
+            <ContextUsageBadge
+              usedTurns={Math.min(conversation.length, MAX_HISTORY_TURNS)}
+              maxTurns={MAX_HISTORY_TURNS}
+            />
+          </div>
         }
       />
 
