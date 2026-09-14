@@ -3,7 +3,7 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import { config, parseApiKeys } from "./core/config.js";
 import logger from "./core/logger.js";
-import { loadData } from "./data/loader.js";
+import "./data/loader.js";
 import dashboardRoutes from "./api/routes/dashboard.js";
 import queryRoutes from "./api/routes/query.js";
 import forecastRoutes from "./api/routes/forecast.js";
@@ -44,8 +44,6 @@ async function buildApp() {
 
 async function start(): Promise<void> {
   const app = await buildApp();
-
-  await loadData();
 
   await app.listen({ host: "0.0.0.0", port: config.port });
 

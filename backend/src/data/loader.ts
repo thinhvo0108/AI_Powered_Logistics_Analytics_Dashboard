@@ -3,7 +3,31 @@ import { parse } from "csv-parse/sync";
 import { config } from "../core/config.js";
 import logger from "../core/logger.js";
 
-export interface LogisticsRecord {
+export interface Row {
+  clientId: string;
+  orderId: string;
+  orderDate: Date;
+  deliveryDate: Date | null;
+  carrier: string;
+  originCity: string;
+  destinationCity: string;
+  status: string;
+  sku: string;
+  productCategory: string;
+  quantity: number;
+  unitPriceUsd: number;
+  orderValueUsd: number;
+  isPromo: boolean;
+  promoDiscountPct: number;
+  region: string;
+  warehouse: string;
+  // Derived fields
+  deliveryDays: number | null;
+  isDelayed: boolean;
+  isOnTime: boolean;
+}
+
+interface RawRecord {
   client_id: string;
   order_id: string;
   order_date: string;
@@ -14,51 +38,75 @@ export interface LogisticsRecord {
   status: string;
   sku: string;
   product_category: string;
-  quantity: number;
-  unit_price_usd: number;
-  order_value_usd: number;
-  is_promo: boolean;
-  promo_discount_pct: number;
+  quantity: string;
+  unit_price_usd: string;
+  order_value_usd: string;
+  is_promo: string;
+  promo_discount_pct: string;
   region: string;
   warehouse: string;
 }
 
-let records: LogisticsRecord[] = [];
-
-/** Loads the CSV at config.dataPath into an in-memory, read-only singleton. */
-export async function loadData(): Promise<LogisticsRecord[]> {
-  const raw = readFileSync(config.dataPath, "utf-8");
-  const rows = parse(raw, {
-    columns: true,
-    skip_empty_lines: true,
-  }) as Record<string, string>[];
-
-  records = rows.map((row) => ({
-    client_id: row.client_id,
-    order_id: row.order_id,
-    order_date: row.order_date,
-    delivery_date: row.delivery_date,
-    carrier: row.carrier,
-    origin_city: row.origin_city,
-    destination_city: row.destination_city,
-    status: row.status,
-    sku: row.sku,
-    product_category: row.product_category,
-    quantity: Number(row.quantity),
-    unit_price_usd: Number(row.unit_price_usd),
-    order_value_usd: Number(row.order_value_usd),
-    is_promo: row.is_promo === "1" || row.is_promo?.toLowerCase() === "true",
-    promo_discount_pct: Number(row.promo_discount_pct),
-    region: row.region,
-    warehouse: row.warehouse,
-  }));
-
-  logger.info({ count: records.length, path: config.dataPath }, "Loaded logistics data");
-
-  return records;
+/**
+ * Parses a "YYYY-MM-DD" date string as UTC midnight, so day-level math
+ * (deliveryDays) and calendar grouping stay correct regardless of the host's
+ * local timezone/DST.
+ */
+export function parseDate(value: string): Date {
+  return new Date(`${value}T00:00:00Z`);
 }
 
-/** Returns the currently loaded records. Call loadData() first. */
-export function getData(): LogisticsRecord[] {
-  return records;
+function toRow(raw: RawRecord): Row {
+  const orderDate = parseDate(raw.order_date);
+  // in_transit / canceled orders have no delivery_date yet.
+  const deliveryDate = raw.delivery_date ? parseDate(raw.delivery_date) : null;
+  const deliveryDays = deliveryDate
+    ? (deliveryDate.getTime() - orderDate.getTime()) / 86_400_000
+    : null;
+  const status = raw.status;
+
+  return {
+    clientId: raw.client_id,
+    orderId: raw.order_id,
+    orderDate,
+    deliveryDate,
+    carrier: raw.carrier,
+    originCity: raw.origin_city,
+    destinationCity: raw.destination_city,
+    status,
+    sku: raw.sku,
+    productCategory: raw.product_category,
+    quantity: Number(raw.quantity),
+    unitPriceUsd: Number(raw.unit_price_usd),
+    orderValueUsd: Number(raw.order_value_usd),
+    isPromo: raw.is_promo === "1" || raw.is_promo?.toLowerCase() === "true",
+    promoDiscountPct: Number(raw.promo_discount_pct),
+    region: raw.region,
+    warehouse: raw.warehouse,
+    deliveryDays,
+    isDelayed: status === "delayed",
+    isOnTime: status === "delivered",
+  };
+}
+
+function load(): Row[] {
+  const raw = readFileSync(config.dataPath, "utf-8");
+  const records = parse(raw, {
+    columns: true,
+    skip_empty_lines: true,
+  }) as RawRecord[];
+
+  const rows = records.map(toRow);
+
+  logger.info({ count: rows.length, path: config.dataPath }, "Loaded logistics data");
+
+  return rows;
+}
+
+// Parsed once, synchronously, at module load ("on startup").
+const rows: Row[] = load();
+
+/** Returns the read-only, in-memory singleton of parsed logistics rows. Never mutate the result. */
+export function getRows(): Row[] {
+  return rows;
 }
