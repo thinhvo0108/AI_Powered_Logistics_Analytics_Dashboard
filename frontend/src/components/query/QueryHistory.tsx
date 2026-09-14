@@ -66,23 +66,30 @@ export function QueryHistory({ onRerun }: QueryHistoryProps) {
                       <button
                         type="button"
                         onClick={() => {
-                          onRerun(item.query);
+                          onRerun(item.firstQuery);
                           setOpen(false);
                         }}
                         className="flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-slate-50"
                       >
                         <div className="flex w-full items-center justify-between gap-2">
                           <span className="text-xs text-slate-400">
-                            {formatDistanceToNow(item.timestamp, { addSuffix: true })}
+                            {formatDistanceToNow(item.updatedAt, { addSuffix: true })}
                           </span>
-                          {item.cached && (
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
-                              cached
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {item.turnCount > 1 && (
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                {item.turnCount} questions
+                              </span>
+                            )}
+                            {item.cached && (
+                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                                cached
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <span className="text-sm text-slate-700">
-                          {truncate(item.query, TRUNCATE_LENGTH)}
+                          {truncate(item.firstQuery, TRUNCATE_LENGTH)}
                         </span>
                       </button>
                     </li>

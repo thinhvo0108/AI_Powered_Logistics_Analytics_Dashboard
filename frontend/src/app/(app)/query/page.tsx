@@ -10,6 +10,7 @@ import { ForecastChart } from "@/components/charts/ForecastChart";
 import { useSubmitQuery, useSuggestions } from "@/hooks/useQuery";
 import { useForecastCategories, useSubmitForecast } from "@/hooks/useForecast";
 import { useFilterStore } from "@/stores/useFilterStore";
+import { useQueryHistoryStore } from "@/stores/useQueryHistoryStore";
 import type { ConversationTurn, ForecastMethod, QueryResponse } from "@/types/logistics";
 
 const FORECAST_METHODS: { value: ForecastMethod; label: string }[] = [
@@ -130,9 +131,13 @@ export default function QueryPage() {
   const filters = useFilterStore((s) => s.filters);
   const { data: suggestions } = useSuggestions();
   const { mutate: runQuery, isPending, error } = useSubmitQuery();
+  const recordTurn = useQueryHistoryStore((s) => s.recordTurn);
 
   const [input, setInput] = useState("");
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
+  // One id per conversation (this page session) — every turn rolls into the
+  // same sidebar history entry instead of creating a new one each time.
+  const [conversationId] = useState(() => crypto.randomUUID());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -152,6 +157,12 @@ export default function QueryPage() {
       {
         onSuccess: (data) => {
           setConversation((prev) => [...prev, { id: crypto.randomUUID(), query, result: data }]);
+          recordTurn(conversationId, {
+            query,
+            answer: data.answer,
+            toolUsed: data.toolUsed,
+            cached: data.cached,
+          });
         },
       }
     );

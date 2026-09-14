@@ -114,11 +114,15 @@ export interface HealthResponse {
   timestamp: string;
 }
 
+/** One conversation in the sidebar history — covers every follow-up turn asked
+ * in that session, not a separate entry per question. */
 export interface QueryHistoryItem {
   id: string;
-  query: string;
+  firstQuery: string;
+  turnCount: number;
   timestamp: number;
-  answer: string;
-  toolUsed: ToolUsed;
+  updatedAt: number;
+  lastAnswer: string;
+  lastToolUsed: ToolUsed;
   cached: boolean;
 }
