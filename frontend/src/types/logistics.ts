@@ -53,6 +53,11 @@ export interface ExplainabilityBlock {
 
 export type ToolUsed = "query" | "forecast" | "both" | "clarify";
 
+export interface ConversationTurn {
+  query: string;
+  answer: string;
+}
+
 export interface QueryResponse {
   answer: string;
   chart: ChartSpec | null;

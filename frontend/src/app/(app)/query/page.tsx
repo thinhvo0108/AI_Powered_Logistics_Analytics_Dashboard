@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Sparkles, TrendingUp } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { QueryInterface } from "@/components/query/QueryInterface";
@@ -10,7 +10,7 @@ import { ForecastChart } from "@/components/charts/ForecastChart";
 import { useSubmitQuery, useSuggestions } from "@/hooks/useQuery";
 import { useForecastCategories, useSubmitForecast } from "@/hooks/useForecast";
 import { useFilterStore } from "@/stores/useFilterStore";
-import type { ForecastMethod, QueryResponse } from "@/types/logistics";
+import type { ConversationTurn, ForecastMethod, QueryResponse } from "@/types/logistics";
 
 const FORECAST_METHODS: { value: ForecastMethod; label: string }[] = [
   { value: "auto", label: "Auto" },
@@ -19,7 +19,10 @@ const FORECAST_METHODS: { value: ForecastMethod; label: string }[] = [
   { value: "exponential_smoothing", label: "Exponential Smoothing" },
 ];
 
-const RELATED_COUNT = 3;
+const SUGGESTION_COUNT = 4;
+// Sent to the backend so it can resolve follow-ups ("what about UPS?") using
+// prior turns — capped to keep the prompt (and payload) from growing unbounded.
+const MAX_HISTORY_TURNS = 6;
 
 function ForecastSection() {
   const { data: categories } = useForecastCategories();
@@ -117,17 +120,41 @@ function ForecastSection() {
   );
 }
 
+interface ConversationEntry {
+  id: string;
+  query: string;
+  result: QueryResponse;
+}
+
 export default function QueryPage() {
   const filters = useFilterStore((s) => s.filters);
   const { data: suggestions } = useSuggestions();
-  const { mutate: runQuery } = useSubmitQuery();
+  const { mutate: runQuery, isPending, error } = useSubmitQuery();
 
   const [input, setInput] = useState("");
-  const [result, setResult] = useState<QueryResponse | null>(null);
+  const [conversation, setConversation] = useState<ConversationEntry[]>([]);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [conversation.length]);
 
   const runAndSubmit = (query: string) => {
-    setInput(query);
-    runQuery({ query, filters }, { onSuccess: setResult });
+    setInput("");
+
+    const history: ConversationTurn[] = conversation.slice(-MAX_HISTORY_TURNS).map((turn) => ({
+      query: turn.query,
+      answer: turn.result.answer,
+    }));
+
+    runQuery(
+      { query, filters, history },
+      {
+        onSuccess: (data) => {
+          setConversation((prev) => [...prev, { id: crypto.randomUUID(), query, result: data }]);
+        },
+      }
+    );
   };
 
   const handleClaritySuggestion = (query: string, autoSubmit: boolean) => {
@@ -138,52 +165,78 @@ export default function QueryPage() {
     }
   };
 
-  const relatedSuggestions = useMemo(
-    () => (suggestions ?? []).filter((s) => s !== input).slice(0, RELATED_COUNT),
-    [suggestions, input]
+  const askedQueries = useMemo(() => new Set(conversation.map((t) => t.query)), [conversation]);
+
+  const visibleSuggestions = useMemo(
+    () => (suggestions ?? []).filter((s) => !askedQueries.has(s)).slice(0, SUGGESTION_COUNT),
+    [suggestions, askedQueries]
   );
 
   return (
     <div className="flex flex-col">
       <Header title="AI Query" />
 
-      <div className="flex flex-col gap-6 p-6">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="flex flex-col gap-4 lg:w-[60%]">
-            <QueryInterface value={input} onValueChange={setInput} onResult={setResult} />
-
-            {result && (
-              <>
-                <QueryResult result={result} onSuggestionSelect={handleClaritySuggestion} />
-
-                {relatedSuggestions.length > 0 && (
-                  <div className="flex flex-col gap-1.5">
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Try related
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {relatedSuggestions.map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          type="button"
-                          onClick={() => runAndSubmit(suggestion)}
-                          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
+        <div className="flex flex-col gap-6">
+          {conversation.length === 0 && !isPending ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+              Ask a question about your logistics data to get started.
+            </div>
+          ) : (
+            conversation.map((turn) => (
+              <div key={turn.id} className="flex flex-col gap-3">
+                <div className="flex justify-end">
+                  <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-blue-600 px-4 py-2 text-sm text-white">
+                    {turn.query}
                   </div>
-                )}
-              </>
-            )}
-          </div>
+                </div>
+                <QueryResult result={turn.result} onSuggestionSelect={handleClaritySuggestion} />
+              </div>
+            ))
+          )}
 
-          <div className="lg:w-[40%]">
-            <QueryHistory onRerun={runAndSubmit} />
-          </div>
+          {isPending && (
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Thinking...
+            </div>
+          )}
+
+          <div ref={bottomRef} />
         </div>
+
+        <div className="sticky bottom-0 flex flex-col gap-3 bg-slate-50 pt-2 pb-4">
+          <QueryInterface
+            value={input}
+            onValueChange={setInput}
+            onSubmit={runAndSubmit}
+            isPending={isPending}
+            error={error}
+          />
+
+          {visibleSuggestions.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                <Sparkles className="h-3.5 w-3.5" />
+                {conversation.length === 0 ? "Try asking" : "Try related"}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {visibleSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => runAndSubmit(suggestion)}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <QueryHistory onRerun={runAndSubmit} />
 
         <ForecastSection />
       </div>

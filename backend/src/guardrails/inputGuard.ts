@@ -56,7 +56,16 @@ const DOMAIN_KEYWORDS = new Set([
   "ontrac",
 ]);
 
-export function checkInput(query: string): GuardrailResult {
+export interface CheckInputOptions {
+  /** True when this query follows earlier turns in the same conversation. Short
+   * follow-ups ("what about UPS?", "and last quarter?") naturally carry none of
+   * the domain keywords on their own, so the off-topic check is skipped once a
+   * logistics conversation is already established — injection checks still
+   * always run regardless of context. */
+  hasContext?: boolean;
+}
+
+export function checkInput(query: string, options: CheckInputOptions = {}): GuardrailResult {
   const lowered = query.toLowerCase();
 
   for (const pattern of INJECTION_PATTERNS) {
@@ -67,6 +76,10 @@ export function checkInput(query: string): GuardrailResult {
         detail: `Query contains a potential prompt injection pattern: "${pattern.trim()}"`,
       };
     }
+  }
+
+  if (options.hasContext) {
+    return { passed: true, violationType: null, detail: null };
   }
 
   const words = lowered.split(/\s+/).filter(Boolean);

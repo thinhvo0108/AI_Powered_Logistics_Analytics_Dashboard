@@ -16,9 +16,18 @@ export const DashboardQuerySchema = z.object({
 });
 export type DashboardQuery = z.infer<typeof DashboardQuerySchema>;
 
+export const ConversationTurnSchema = z.object({
+  query: z.string(),
+  answer: z.string(),
+});
+export type ConversationTurn = z.infer<typeof ConversationTurnSchema>;
+
 export const NLQueryRequestSchema = z.object({
   query: z.string().min(3).max(500),
   filters: FiltersSchema.default({}),
+  // Prior turns in this conversation, oldest first — lets the LLM resolve
+  // follow-ups ("what about UPS?") without treating each query in isolation.
+  history: z.array(ConversationTurnSchema).max(10).default([]),
 });
 export type NLQueryRequest = z.infer<typeof NLQueryRequestSchema>;
 

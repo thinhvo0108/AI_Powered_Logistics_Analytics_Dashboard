@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, SystemMessage, type BaseMessage } from "@langchain/core/messages";
 import { getLLM } from "../../llm/client.js";
 import { getDateRange } from "../../data/loader.js";
 import logger from "../../core/logger.js";
@@ -68,7 +68,22 @@ If the question names one of these nouns, you MUST set dimension to match it —
 leave dimension unset in that case. Only omit dimension when the question genuinely
 names none of them.
 
+This may be a follow-up in an ongoing conversation — earlier turns are included as
+prior messages below. Use them to resolve references like "what about UPS?" or "and
+last quarter?" into a fully specified routing decision (e.g. reuse the same metric as
+before, but with a different dimension value or filter). A short follow-up is not
+ambiguous just because it lacks a metric of its own — infer it from the conversation.
+
 NEVER answer from memory. ALWAYS route to a tool.`;
+}
+
+/** Turns prior Q&A pairs into alternating messages so the model can resolve
+ * follow-up references instead of judging each query in isolation. */
+function buildHistoryMessages(history: AppState["history"]): BaseMessage[] {
+  return (history ?? []).flatMap((turn) => [
+    new HumanMessage(turn.query),
+    new AIMessage(turn.answer),
+  ]);
 }
 
 export async function intentDetectionNode(state: AppState): Promise<Partial<AppState>> {
@@ -76,6 +91,7 @@ export async function intentDetectionNode(state: AppState): Promise<Partial<AppS
     const structuredLLM = getLLM().withStructuredOutput(IntentResultSchema, { method: "jsonSchema" });
     const result = await structuredLLM.invoke([
       new SystemMessage(buildSystemPrompt()),
+      ...buildHistoryMessages(state.history),
       new HumanMessage(state.query),
     ]);
 

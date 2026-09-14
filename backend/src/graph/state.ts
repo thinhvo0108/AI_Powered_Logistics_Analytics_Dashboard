@@ -2,6 +2,7 @@ import { Annotation } from "@langchain/langgraph";
 
 export const AppStateAnnotation = Annotation.Root({
   query: Annotation<string>,
+  history: Annotation<{ query: string; answer: string }[]>,
   filters: Annotation<Record<string, unknown>>,
   guardrailPassed: Annotation<boolean>,
   guardrailViolation: Annotation<string | null>,

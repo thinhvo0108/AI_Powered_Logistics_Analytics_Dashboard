@@ -21,15 +21,19 @@ const SUGGESTIONS = [
 
 const queryRoutes: FastifyPluginAsync = async (app) => {
   app.post("/query", async (request, reply) => {
-    const { query, filters } = NLQueryRequestSchema.parse(request.body);
+    const { query, filters, history } = NLQueryRequestSchema.parse(request.body);
+    const hasContext = history.length > 0;
 
+    // Follow-up answers depend on the conversation so far, not just the raw query
+    // text — caching them under a key that ignores history would risk serving a
+    // stale, context-specific answer into an unrelated conversation.
     const cacheKey = queryCache.makeKey(query, filters);
-    const cachedResponse = queryCache.get(cacheKey) as QueryResponse | null;
+    const cachedResponse = !hasContext ? (queryCache.get(cacheKey) as QueryResponse | null) : null;
     if (cachedResponse) {
       return { ...cachedResponse, cached: true };
     }
 
-    const guardrailResult = checkInput(query);
+    const guardrailResult = checkInput(query, { hasContext });
     if (!guardrailResult.passed) {
       return reply.code(400).send({
         error: "Query rejected by input guardrail",
@@ -41,6 +45,7 @@ const queryRoutes: FastifyPluginAsync = async (app) => {
     const graph = getWorkflow();
     const result = await graph.invoke({
       query,
+      history,
       filters: filters as Record<string, unknown>,
       errors: [],
     });
@@ -55,7 +60,9 @@ const queryRoutes: FastifyPluginAsync = async (app) => {
       errors: result.errors ?? [],
     };
 
-    queryCache.set(cacheKey, response);
+    if (!hasContext) {
+      queryCache.set(cacheKey, response);
+    }
 
     return response;
   });

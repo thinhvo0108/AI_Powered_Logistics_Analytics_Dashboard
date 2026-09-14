@@ -1,5 +1,6 @@
 import type {
   ChartSpec,
+  ConversationTurn,
   Filters,
   FilterOptions,
   ForecastParams,
@@ -95,10 +96,14 @@ export function fetchFilterOptions(): Promise<FilterOptions> {
   return apiFetch<FilterOptions>("/api/dashboard/filters/options");
 }
 
-export function submitQuery(query: string, filters: Filters): Promise<QueryResponse> {
+export function submitQuery(
+  query: string,
+  filters: Filters,
+  history: ConversationTurn[] = []
+): Promise<QueryResponse> {
   return apiFetch<QueryResponse>("/api/query", {
     method: "POST",
-    body: JSON.stringify({ query, filters }),
+    body: JSON.stringify({ query, filters, history }),
   });
 }
 

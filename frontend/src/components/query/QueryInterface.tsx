@@ -3,25 +3,20 @@
 import { type KeyboardEvent } from "react";
 import { AlertCircle, Loader2, Send } from "lucide-react";
 import { ApiError } from "@/api/client";
-import { useSubmitQuery, useSuggestions } from "@/hooks/useQuery";
-import { useFilterStore } from "@/stores/useFilterStore";
-import type { QueryResponse } from "@/types/logistics";
 
 interface QueryInterfaceProps {
   value: string;
   onValueChange: (value: string) => void;
-  onResult: (result: QueryResponse) => void;
+  onSubmit: (query: string) => void;
+  isPending: boolean;
+  error: unknown;
 }
 
-export function QueryInterface({ value, onValueChange, onResult }: QueryInterfaceProps) {
-  const filters = useFilterStore((s) => s.filters);
-  const { data: suggestions } = useSuggestions();
-  const { mutate, isPending, error } = useSubmitQuery();
-
+export function QueryInterface({ value, onValueChange, onSubmit, isPending, error }: QueryInterfaceProps) {
   const submit = () => {
     const trimmed = value.trim();
     if (!trimmed || isPending) return;
-    mutate({ query: trimmed, filters }, { onSuccess: (data) => onResult(data) });
+    onSubmit(trimmed);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -39,21 +34,6 @@ export function QueryInterface({ value, onValueChange, onResult }: QueryInterfac
 
   return (
     <div className="flex flex-col gap-3">
-      {suggestions && suggestions.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {suggestions.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              onClick={() => onValueChange(suggestion)}
-              className="shrink-0 whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-      )}
-
       <div className="rounded-lg border border-slate-200 bg-white p-3">
         <textarea
           value={value}
