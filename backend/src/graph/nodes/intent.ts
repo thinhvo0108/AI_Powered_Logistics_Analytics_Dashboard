@@ -57,6 +57,17 @@ Only set queryParams.timeRangeOverride when the user explicitly names a date, mo
 year. If they don't mention a time period, omit timeRangeOverride entirely so the query
 runs over the full dataset — never invent or guess a date range.
 
+queryParams.dimension controls how results are grouped, and it is easy to forget — pay
+close attention to the noun the user groups/breaks down by:
+- "by region" / "which region" / "per region" -> dimension: "region"
+- "by carrier" / "which carrier" / "per carrier" -> dimension: "carrier"
+- "by warehouse" -> dimension: "warehouse"
+- "by category" -> dimension: "category"
+- "over time" / "by month" / "trend" -> dimension: "time"
+If the question names one of these nouns, you MUST set dimension to match it — do not
+leave dimension unset in that case. Only omit dimension when the question genuinely
+names none of them.
+
 NEVER answer from memory. ALWAYS route to a tool.`;
 }
 

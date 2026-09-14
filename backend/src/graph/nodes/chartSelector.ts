@@ -31,6 +31,12 @@ function detectDimensionKey(row: Record<string, unknown>): "carrier" | "region" 
   return "warehouse";
 }
 
+const DIMENSION_LABEL: Record<"carrier" | "region" | "warehouse", string> = {
+  carrier: "Carrier",
+  region: "Region",
+  warehouse: "Warehouse",
+};
+
 function buildOrderVolumeChart(data: Record<string, unknown>[]): ChartSpec {
   return {
     chartType: "area",
@@ -126,14 +132,16 @@ function buildQueryChart(queryResult: Record<string, unknown>): ChartSpec | null
     case "order_volume":
       return buildOrderVolumeChart(data);
 
-    case "delay_rate":
+    case "delay_rate": {
       if (dimension === "time") return buildDeliveryPerformanceChart(data);
+      const dimensionKey = detectDimensionKey(data[0]);
       return buildBreakdownBarChart(
         data,
-        detectDimensionKey(data[0]),
+        dimensionKey,
         series("delayRate", "Delay Rate", COLORS.red),
-        "Delay Rate by Carrier"
+        `Delay Rate by ${DIMENSION_LABEL[dimensionKey]}`
       );
+    }
 
     case "carrier_performance":
       return buildBreakdownBarChart(
@@ -143,13 +151,16 @@ function buildQueryChart(queryResult: Record<string, unknown>): ChartSpec | null
         "Carrier Performance"
       );
 
-    case "delivery_time":
+    case "delivery_time": {
+      if (dimension === "time") return buildDeliveryPerformanceChart(data);
+      const dimensionKey = detectDimensionKey(data[0]);
       return buildBreakdownBarChart(
         data,
-        "carrier",
+        dimensionKey,
         series("avgDeliveryDays", "Avg Delivery Days", COLORS.purple),
-        "Average Delivery Time by Carrier"
+        `Average Delivery Time by ${DIMENSION_LABEL[dimensionKey]}`
       );
+    }
 
     case "revenue":
       if (dimension === "region") {

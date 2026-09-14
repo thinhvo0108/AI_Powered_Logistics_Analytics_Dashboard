@@ -49,6 +49,7 @@ export interface RegionRow {
   total: number;
   delayed: number;
   delayRate: number;
+  avgDeliveryDays: number;
   revenue: number;
 }
 
@@ -64,6 +65,7 @@ export interface WarehouseRow {
   total: number;
   delayed: number;
   delayRate: number;
+  avgDeliveryDays: number;
 }
 
 export interface RouteRow {
@@ -247,6 +249,7 @@ export function getRegionBreakdown(rows: Row[], filters: Filters): RegionRow[] {
       total,
       delayed,
       delayRate: ratio(delayed, total),
+      avgDeliveryDays: average(deliveryDaysOf(groupRows)),
       revenue: round2(groupRows.reduce((sum, r) => sum + r.orderValueUsd, 0)),
     };
   });
@@ -281,7 +284,13 @@ export function getWarehouseBreakdown(rows: Row[], filters: Filters): WarehouseR
     const total = groupRows.length;
     const delayed = groupRows.filter((r) => r.isDelayed).length;
 
-    return { warehouse, total, delayed, delayRate: ratio(delayed, total) };
+    return {
+      warehouse,
+      total,
+      delayed,
+      delayRate: ratio(delayed, total),
+      avgDeliveryDays: average(deliveryDaysOf(groupRows)),
+    };
   });
 
   return result.sort((a, b) => b.delayRate - a.delayRate || b.total - a.total);

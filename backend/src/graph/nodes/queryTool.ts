@@ -1,16 +1,33 @@
 import type { AppState } from "../state.js";
-import { getRows } from "../../data/loader.js";
+import { getRows, type Row } from "../../data/loader.js";
 import {
   getOrdersOverTime,
   getCarrierBreakdown,
   getRegionBreakdown,
   getCategoryBreakdown,
+  getWarehouseBreakdown,
   getDeliveryPerformance,
   getTopDelayedRoutes,
   type Filters,
   type Granularity,
 } from "../../data/queries.js";
 import logger from "../../core/logger.js";
+
+/** Delay/on-time performance can be sliced by carrier (default), region, warehouse, or
+ * time — group by whatever dimension the user actually asked for instead of always
+ * defaulting to carrier. */
+function getDelayBreakdown(rows: Row[], filters: Filters, dimension: string | undefined): unknown[] {
+  switch (dimension) {
+    case "region":
+      return getRegionBreakdown(rows, filters);
+    case "warehouse":
+      return getWarehouseBreakdown(rows, filters);
+    case "time":
+      return getDeliveryPerformance(rows, filters);
+    default:
+      return getCarrierBreakdown(rows, filters);
+  }
+}
 
 export async function queryToolNode(state: AppState): Promise<Partial<AppState>> {
   const start = performance.now();
@@ -40,13 +57,10 @@ export async function queryToolNode(state: AppState): Promise<Partial<AppState>>
         data = getCarrierBreakdown(rows, filters);
         break;
       case "delay_rate":
-        data =
-          dimension === "time"
-            ? getDeliveryPerformance(rows, filters)
-            : getCarrierBreakdown(rows, filters);
+        data = getDelayBreakdown(rows, filters, dimension);
         break;
       case "delivery_time":
-        data = getCarrierBreakdown(rows, filters);
+        data = getDelayBreakdown(rows, filters, dimension);
         break;
       case "revenue":
         data =

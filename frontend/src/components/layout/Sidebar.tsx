@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart2, MessageSquare, TrendingUp, Truck, Circle } from "lucide-react";
+import { BarChart2, MessageSquare, Truck, Circle } from "lucide-react";
 import { clsx } from "clsx";
 import { fetchHealth } from "@/api/client";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
   { href: "/query", label: "AI Query", icon: MessageSquare },
-  { href: "/forecast", label: "Forecast", icon: TrendingUp },
 ];
 
 export function Sidebar() {
