@@ -110,7 +110,7 @@ export async function formatterNode(state: AppState): Promise<Partial<AppState>>
         metricsUsed: [],
         dimensionsUsed: [],
         queryPlan: {
-          steps: ["Guardrail/intent detection flagged the query as ambiguous", "Requested clarification instead of routing to a tool"],
+          steps: ["Query was ambiguous — could not determine tool without clarification."],
           computation: "N/A",
           dataShape: "empty",
           executionTimeMs: 0,

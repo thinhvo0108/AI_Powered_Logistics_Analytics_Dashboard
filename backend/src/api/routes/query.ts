@@ -14,6 +14,9 @@ const SUGGESTIONS = [
   "How does FedEx compare to DHL on delivery time?",
   "Show revenue breakdown by product category",
   "Forecast PENCIL SKU demand for the next 6 months",
+  "Show me data for next month",
+  "How is FedEx doing?",
+  "What should I order more of?",
 ];
 
 const queryRoutes: FastifyPluginAsync = async (app) => {

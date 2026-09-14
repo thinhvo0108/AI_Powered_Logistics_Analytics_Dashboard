@@ -34,6 +34,18 @@ describe("checkInput", () => {
 
     expect(result.passed).toBe(true);
   });
+
+  it("allows an ambiguous forecast-vs-recent query (on-topic; ambiguity handled by LangGraph)", () => {
+    const result = checkInput("Show me data for next month");
+
+    expect(result.passed).toBe(true);
+  });
+
+  it("allows an ambiguous carrier query missing a time range (on-topic; ambiguity handled by LangGraph)", () => {
+    const result = checkInput("How is FedEx doing?");
+
+    expect(result.passed).toBe(true);
+  });
 });
 
 describe("checkOutput", () => {

@@ -45,6 +45,15 @@ const DOMAIN_KEYWORDS = new Set([
   "ontime",
   "transit",
   "pending",
+  "data",
+  "fedex",
+  "ups",
+  "usps",
+  "dhl",
+  "dpd",
+  "gls",
+  "lasership",
+  "ontrac",
 ]);
 
 export function checkInput(query: string): GuardrailResult {

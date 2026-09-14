@@ -130,6 +130,14 @@ export default function QueryPage() {
     runQuery({ query, filters }, { onSuccess: setResult });
   };
 
+  const handleClaritySuggestion = (query: string, autoSubmit: boolean) => {
+    if (autoSubmit && query) {
+      runAndSubmit(query);
+    } else {
+      setInput(query);
+    }
+  };
+
   const relatedSuggestions = useMemo(
     () => (suggestions ?? []).filter((s) => s !== input).slice(0, RELATED_COUNT),
     [suggestions, input]
@@ -146,7 +154,7 @@ export default function QueryPage() {
 
             {result && (
               <>
-                <QueryResult result={result} />
+                <QueryResult result={result} onSuggestionSelect={handleClaritySuggestion} />
 
                 {relatedSuggestions.length > 0 && (
                   <div className="flex flex-col gap-1.5">
