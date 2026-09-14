@@ -57,7 +57,10 @@ export function CarrierBreakdownChart({ spec }: CarrierBreakdownChartProps) {
                 width={110}
                 tick={{ fontSize: 12, fill: "#64748b" }}
               />
-              <Tooltip contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }} />
+              <Tooltip
+                cursor={{ fill: "#3b82f6", fillOpacity: 0.06 }}
+                contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }}
+              />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey={valueKey} name={spec.series[0]?.label ?? "Delay Rate"} radius={[0, 4, 4, 0]}>
                 {sortedData.map((row, i) => (

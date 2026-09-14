@@ -86,7 +86,10 @@ function renderChart(spec: ChartSpec) {
               <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
             </>
           )}
-          <Tooltip contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }} />
+          <Tooltip
+            cursor={{ fill: "#3b82f6", fillOpacity: 0.06 }}
+            contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }}
+          />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {spec.series.map((s) => (
             <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />
@@ -146,7 +149,10 @@ function renderChart(spec: ChartSpec) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey={spec.xKey} tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
           <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
-          <Tooltip contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }} />
+          <Tooltip
+            cursor={{ fill: "#3b82f6", fillOpacity: 0.06 }}
+            contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }}
+          />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {spec.series.map((s) =>
             s.type === "line" ? (

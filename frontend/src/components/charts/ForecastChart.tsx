@@ -70,7 +70,10 @@ export function ForecastChart({ spec }: ForecastChartProps) {
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
               <XAxis dataKey={spec.xKey} tick={{ fontSize: 12, fill: "#64748b" }} />
               <YAxis tick={{ fontSize: 12, fill: "#64748b" }} allowDecimals={false} />
-              <Tooltip contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }} />
+              <Tooltip
+                cursor={{ fill: "#3b82f6", fillOpacity: 0.06 }}
+                contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }}
+              />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               {todayX !== undefined ? (
                 <ReferenceLine
