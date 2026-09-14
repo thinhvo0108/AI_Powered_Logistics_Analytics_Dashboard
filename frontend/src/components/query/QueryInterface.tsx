@@ -1,1 +1,97 @@
-// TODO: implement
+"use client";
+
+import { type KeyboardEvent } from "react";
+import { AlertCircle, Loader2, Send } from "lucide-react";
+import { ApiError } from "@/api/client";
+import { useSubmitQuery, useSuggestions } from "@/hooks/useQuery";
+import { useFilterStore } from "@/stores/useFilterStore";
+import type { QueryResponse } from "@/types/logistics";
+
+interface QueryInterfaceProps {
+  value: string;
+  onValueChange: (value: string) => void;
+  onResult: (result: QueryResponse) => void;
+}
+
+export function QueryInterface({ value, onValueChange, onResult }: QueryInterfaceProps) {
+  const filters = useFilterStore((s) => s.filters);
+  const { data: suggestions } = useSuggestions();
+  const { mutate, isPending, error } = useSubmitQuery();
+
+  const submit = () => {
+    const trimmed = value.trim();
+    if (!trimmed || isPending) return;
+    mutate({ query: trimmed, filters }, { onSuccess: (data) => onResult(data) });
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    }
+  };
+
+  const errorMessage = error
+    ? error instanceof ApiError
+      ? error.message
+      : "Something went wrong. Please try again."
+    : null;
+
+  return (
+    <div className="flex flex-col gap-3">
+      {suggestions && suggestions.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {suggestions.map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => onValueChange(suggestion)}
+              className="shrink-0 whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <textarea
+          value={value}
+          onChange={(e) => onValueChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          rows={2}
+          placeholder="Ask about your logistics data... e.g. 'Which carrier had the most delays last month?'"
+          className="max-h-[9rem] min-h-[3.25rem] w-full resize-none text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
+        />
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <span className="text-xs text-slate-400">
+            {isPending ? (
+              <span className="flex items-center gap-1.5 text-slate-500">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Thinking...
+              </span>
+            ) : (
+              "Enter to submit · Shift+Enter for new line"
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={isPending || !value.trim()}
+            className="flex shrink-0 items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
+          >
+            <Send className="h-4 w-4" />
+            Ask
+          </button>
+        </div>
+      </div>
+
+      {errorMessage && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {errorMessage}
+        </div>
+      )}
+    </div>
+  );
+}

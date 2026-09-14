@@ -108,4 +108,5 @@ export interface QueryHistoryItem {
   timestamp: number;
   answer: string;
   toolUsed: ToolUsed;
+  cached: boolean;
 }

@@ -24,6 +24,7 @@ export function useSubmitQuery() {
         timestamp: Date.now(),
         answer: data.answer,
         toolUsed: data.toolUsed,
+        cached: data.cached,
       });
     },
   });
