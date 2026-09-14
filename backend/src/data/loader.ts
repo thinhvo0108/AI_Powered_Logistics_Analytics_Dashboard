@@ -110,3 +110,14 @@ const rows: Row[] = load();
 export function getRows(): Row[] {
   return rows;
 }
+
+const orderDates = rows.map((row) => row.orderDate.getTime());
+const dateRange = {
+  startDate: new Date(Math.min(...orderDates)).toISOString().slice(0, 10),
+  endDate: new Date(Math.max(...orderDates)).toISOString().slice(0, 10),
+};
+
+/** The actual order-date coverage of the loaded dataset, e.g. for grounding LLM prompts. */
+export function getDateRange(): { startDate: string; endDate: string } {
+  return dateRange;
+}

@@ -5,25 +5,55 @@ import { getLLM } from "../../llm/client.js";
 import { checkOutput } from "../../guardrails/outputGuard.js";
 import logger from "../../core/logger.js";
 
+function describeFilters(filtersApplied: Record<string, unknown> | undefined): string {
+  const entries = Object.entries(filtersApplied ?? {}).filter(
+    ([, val]) => val != null && val !== ""
+  );
+  if (entries.length === 0) return "no filters";
+  return entries.map(([key, val]) => `${key}=${JSON.stringify(val)}`).join(", ");
+}
+
+/** Returns null when there's nothing for the LLM to summarize — the caller should
+ * fall back to a deterministic "no data found" answer instead of risking the LLM
+ * filling the gap with outside knowledge. */
 function buildPrompt(state: AppState): string | null {
   if (state.queryResult) {
     const data = (state.queryResult.data as unknown[]) ?? [];
+    if (data.length === 0) return null;
+
     return (
-      `Based on this data:\n${JSON.stringify(data.slice(0, 5))}\n` +
+      `Based ONLY on this data (do not use any outside knowledge):\n${JSON.stringify(data.slice(0, 5))}\n` +
       `Answer in 2-3 sentences with specific numbers.\n` +
       `User asked: ${state.query}`
     );
   }
 
   if (state.forecastResult) {
+    const historical = (state.forecastResult.historical as unknown[] | undefined) ?? [];
+    const forecast = (state.forecastResult.forecast as unknown[] | undefined) ?? [];
+    if (historical.length === 0 && forecast.length === 0) return null;
+
     return (
-      `Based on this forecast:\n${JSON.stringify(state.forecastResult)}\n` +
+      `Based ONLY on this forecast (do not use any outside knowledge):\n${JSON.stringify(state.forecastResult)}\n` +
       `Summarize trend, key numbers, inventory action in 2-3 sentences.\n` +
       `User asked: ${state.query}`
     );
   }
 
   return null;
+}
+
+function buildNoDataAnswer(state: AppState): string {
+  if (state.queryResult) {
+    const filtersApplied = state.queryResult.filtersApplied as Record<string, unknown> | undefined;
+    return `No matching data was found for your query (filters: ${describeFilters(filtersApplied)}). Try a different time range or removing a filter.`;
+  }
+
+  if (state.forecastResult) {
+    return "No historical data was found for that SKU/category, so a forecast could not be generated.";
+  }
+
+  return "";
 }
 
 function describeDataShape(data: Record<string, unknown>[] | undefined): string {
@@ -131,6 +161,8 @@ export async function formatterNode(state: AppState): Promise<Partial<AppState>>
       const raw =
         typeof response.content === "string" ? response.content : JSON.stringify(response.content);
       answer = checkOutput(raw);
+    } else if (state.queryResult || state.forecastResult) {
+      answer = buildNoDataAnswer(state);
     }
 
     const dataTable = (

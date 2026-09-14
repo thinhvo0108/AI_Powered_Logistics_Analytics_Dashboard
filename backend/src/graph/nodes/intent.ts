@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { getLLM } from "../../llm/client.js";
+import { getDateRange } from "../../data/loader.js";
 import logger from "../../core/logger.js";
 import type { AppState } from "../state.js";
 
@@ -36,9 +37,15 @@ const IntentResultSchema = z.object({
   clarificationPrompt: z.string().optional(),
 });
 
-const SYSTEM_PROMPT = `You are an AI assistant for a logistics analytics platform. Interpret the user question
+function buildSystemPrompt(): string {
+  const { startDate, endDate } = getDateRange();
+
+  return `You are an AI assistant for a logistics analytics platform. Interpret the user question
 and output a structured routing decision. The data contains: orders, delivery status
 (delivered/delayed/exception), carriers, regions, SKUs, product categories, warehouses, dates.
+
+The dataset only covers orders from ${startDate} to ${endDate}. Do not assume any other
+date range from your own knowledge (e.g. today's date or a "recent" year).
 
 Available tools:
 - query: historical analytics (KPIs, aggregations, breakdowns, comparisons)
@@ -46,13 +53,18 @@ Available tools:
 - both: question asks for both historical context AND a forecast
 - clarify: question is genuinely ambiguous — cannot route without clarification
 
+Only set queryParams.timeRangeOverride when the user explicitly names a date, month, or
+year. If they don't mention a time period, omit timeRangeOverride entirely so the query
+runs over the full dataset — never invent or guess a date range.
+
 NEVER answer from memory. ALWAYS route to a tool.`;
+}
 
 export async function intentDetectionNode(state: AppState): Promise<Partial<AppState>> {
   try {
-    const structuredLLM = getLLM().withStructuredOutput(IntentResultSchema);
+    const structuredLLM = getLLM().withStructuredOutput(IntentResultSchema, { method: "jsonSchema" });
     const result = await structuredLLM.invoke([
-      new SystemMessage(SYSTEM_PROMPT),
+      new SystemMessage(buildSystemPrompt()),
       new HumanMessage(state.query),
     ]);
 
