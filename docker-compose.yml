@@ -6,9 +6,10 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
-      - ./backend/data:/app/data:ro
+      - ./backend/src:/app/src        # hot-reload in dev
+      - ./backend/data:/app/data:ro   # read-only data
     environment:
+      - NODE_ENV=development
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:latest}
@@ -21,6 +22,7 @@ services:
       - CORS_ORIGINS=http://localhost:3000
       - DATA_PATH=data/mock_logistics_data.csv
       - QUERY_CACHE_TTL_SECONDS=${QUERY_CACHE_TTL_SECONDS:-300}
+    command: npm run dev
     depends_on:
       ollama:
         condition: service_healthy
@@ -41,7 +43,7 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_API_KEY=${API_KEYS:-dev-secret-key:admin}
+      - NEXT_PUBLIC_API_KEY=dev-secret-key
     depends_on:
       - backend
     restart: unless-stopped
@@ -60,19 +62,15 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # One-shot service: pulls the LLM model on first start
+  # One-shot: pulls the LLM model on first start
   ollama-pull:
     image: ollama/ollama:latest
     volumes:
       - ollama_data:/root/.ollama
     environment:
       - OLLAMA_HOST=http://ollama:11434
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:latest}
     command: >
-      sh -c "
-        sleep 5 &&
-        ollama pull ${OLLAMA_MODEL:-llama3.2:latest}
-      "
+      sh -c "sleep 5 && ollama pull ${OLLAMA_MODEL:-llama3.2:latest}"
     depends_on:
       ollama:
         condition: service_healthy

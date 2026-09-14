@@ -18,44 +18,48 @@ This is a senior AI engineering portfolio project. The AI layer is a **routing a
 Frontend (Next.js 15 + Tailwind + Recharts)
         │
         ▼
-   FastAPI Backend  ──────────────────────────────────────┐
-        │                                                  │
-        ▼                                                  │
-  [Input Guardrail]                              REST: /api/dashboard/*
-  (off-topic · injection)                        REST: /api/query
-        │                                        REST: /api/forecast
-        ▼
-  LangGraph Workflow
+   Fastify Backend (Node.js 22 + TypeScript)
         │
-    ┌───┴────────────────┐
-    ▼                    ▼
-Intent Detection    Tool Router
-    │              ┌─────┴──────┐
-    │              ▼            ▼
-    │         Query Tool   Forecast Tool
-    │        (pandas agg)  (sklearn/statsmodels)
-    │              │            │
-    └──────────────┼────────────┘
-                   ▼
-          Chart Type Selector
-                   │
-                   ▼
-         Response Formatter
-         (answer + explainability)
-                   │
-                   ▼
-          [Output Guardrail]
-                   │
-                   ▼
-           Final Response
-           (answer + chart spec + query plan + data table)
+        ├── REST: GET /api/dashboard/*  (static KPIs + charts)
+        ├── REST: POST /api/query       (NL → LangGraph workflow)
+        └── REST: POST /api/forecast    (direct forecasting)
+                │
+                ▼
+        [Input Guardrail]
+        (off-topic · injection)
+                │
+                ▼
+        LangGraph Workflow (@langchain/langgraph)
+                │
+            ┌───┴────────────────┐
+            ▼                    ▼
+    Intent Detection        Tool Router
+            │              ┌─────┴──────┐
+            │              ▼            ▼
+            │         Query Tool   Forecast Tool
+            │        (TS arrays)   (simple-statistics)
+            │              │            │
+            └──────────────┼────────────┘
+                           ▼
+                  Chart Type Selector
+                           │
+                           ▼
+                 Response Formatter
+                 (answer + explainability)
+                           │
+                           ▼
+                  [Output Guardrail]
+                           │
+                           ▼
+                   Final Response
+                   (answer + chart spec + query plan + data table)
 ```
 
 Key design decisions:
-- **No raw AI SQL** — structured pandas queries only; AI picks query parameters, not SQL strings
-- **LLM is a router** — all computation is deterministic Python; AI only interprets intent and selects tools
+- **No raw AI-generated code execution** — structured query params only; AI picks parameters, not SQL or code
+- **LLM is a router** — all computation is deterministic TypeScript; AI only interprets intent and selects tools
 - **Multi-LLM support** — Ollama (local), RunPod (cloud GPU, OpenAI-compatible), OpenAI API — switchable via `LLM_PROVIDER` env var
-- **Read-only data** — CSV loaded once as a pandas DataFrame singleton on startup
+- **Read-only data** — CSV loaded once into memory as an array of typed objects on startup
 - **Explainability first** — every response includes filters applied, metrics used, query plan, and raw data table
 
 ---
@@ -63,13 +67,15 @@ Key design decisions:
 ## Technical Stack
 
 ### Backend
-- **FastAPI** + Uvicorn (async API)
-- **LangGraph** `StateGraph` — orchestration workflow
-- **LangChain** — `ChatOllama` / `ChatOpenAI` with `with_structured_output()`
-- **pandas** — all data computation (aggregations, filtering, KPI calc)
-- **scikit-learn + statsmodels** — forecasting (linear regression, exponential smoothing)
-- **structlog** — JSON structured logging
-- **pydantic v2** — settings, request/response schemas
+- **Node.js 22** + **TypeScript** (strict mode)
+- **Fastify v5** — fast, TypeScript-native HTTP framework with schema validation
+- **Zod** — runtime schema validation for all API boundaries
+- **@langchain/langgraph** — LangGraph JS/TS orchestration workflow
+- **@langchain/ollama** + **@langchain/openai** — LLM provider adapters
+- **csv-parse** — CSV data loading (read-only, loaded once on startup)
+- **simple-statistics** — linear regression, descriptive stats for forecasting
+- **pino** — JSON structured logging (Fastify default)
+- **vitest** — unit and integration tests
 
 ### LLM Providers (via `LLM_PROVIDER` env)
 | Provider | Env Var | Notes |
@@ -80,7 +86,7 @@ Key design decisions:
 
 ### Frontend
 - **Next.js 15** + TypeScript + App Router
-- **Tailwind CSS 4** + Shadcn/UI
+- **Tailwind CSS 4** + Shadcn/UI (Radix UI primitives)
 - **Recharts 2** — AreaChart, BarChart, LineChart, PieChart, ComposedChart
 - **TanStack Query (React Query 5)** — server state / caching
 - **Zustand** — client state (query history, filters)
@@ -95,50 +101,51 @@ Key design decisions:
 ## Project Structure
 
 ```
-backend/app/
+backend/src/
     api/
         routes/
-            dashboard.py    # GET /api/dashboard/kpis, /charts/*
-            query.py        # POST /api/query  (NL → AI orchestration)
-            forecast.py     # POST /api/forecast
-        dependencies.py
-
+            dashboard.ts    # GET /api/dashboard/kpis, /charts/*
+            query.ts        # POST /api/query  (NL → LangGraph workflow)
+            forecast.ts     # POST /api/forecast
+    
     core/
-        config.py           # Pydantic BaseSettings — LLM, data, server config
-        logging.py          # structlog setup
+        config.ts           # Zod-validated env config (dotenv + zod)
+        logger.ts           # pino logger setup
 
     data/
-        loader.py           # CSV → DataFrame singleton (read-only)
-        queries.py          # All typed pandas query functions (no AI-generated SQL)
+        loader.ts           # CSV → typed Row[] singleton (read-only)
+        queries.ts          # All typed TS query functions (aggregations, filtering)
 
     graph/
-        state.py            # AppState TypedDict
-        workflow.py         # LangGraph StateGraph definition
+        state.ts            # AppState interface + Annotation definitions
+        workflow.ts         # LangGraph StateGraph definition
         nodes/
-            guardrail.py    # Input/output guardrail node
-            intent.py       # Intent detection — what does user want?
-            query_tool.py   # Analytics tool node (calls data/queries.py)
-            forecast_tool.py # Forecasting tool node (calls forecasting/engine.py)
-            chart_selector.py # Select chart type from result shape
-            formatter.py    # Build final response with explainability
+            guardrail.ts    # Input/output guardrail node
+            intent.ts       # Intent detection — what does user want?
+            queryTool.ts    # Analytics tool node (calls data/queries.ts)
+            forecastTool.ts # Forecasting tool node (calls forecasting/engine.ts)
+            chartSelector.ts # Select chart type from result shape
+            formatter.ts    # Build final response with explainability
 
     forecasting/
-        engine.py           # Moving avg, linear reg, exp smoothing implementations
-        recommender.py      # Inventory recommendation logic
+        engine.ts           # Moving avg, linear reg, exp smoothing implementations
+        recommender.ts      # Inventory recommendation logic
 
     guardrails/
-        input_guard.py      # Off-topic + injection check
-        output_guard.py     # Safety screening
+        inputGuard.ts       # Off-topic + injection check (pattern-based)
+        outputGuard.ts      # Safety screening of LLM answer
 
     llm/
-        client.py           # LLM factory: returns ChatOllama | ChatOpenAI based on LLM_PROVIDER
+        client.ts           # LLM factory: returns Ollama | OpenAI (RunPod) based on LLM_PROVIDER
 
     schemas/
-        requests.py         # QueryRequest, ForecastRequest
-        responses.py        # QueryResponse, ChartSpec, ExplainabilityBlock, ForecastResponse
+        requests.ts         # Zod schemas — QueryRequest, ForecastRequest, Filters
+        responses.ts        # Zod schemas — KPIResponse, ChartSpec, QueryResponse, ForecastResponse
 
     cache/
-        query_cache.py      # In-memory TTL cache for repeated NL queries (bonus)
+        queryCache.ts       # In-memory TTL cache for repeated NL queries (bonus)
+
+    index.ts                # Fastify app entry point, plugin registration, lifespan
 
 frontend/src/
     app/(app)/
@@ -147,21 +154,21 @@ frontend/src/
 
     components/
         charts/
-            OrderVolumeChart.tsx        # AreaChart — orders over time
-            DeliveryPerformanceChart.tsx # BarChart — on-time vs delayed
-            CarrierBreakdownChart.tsx   # BarChart — delay rate per carrier
-            CategoryRevenueChart.tsx    # PieChart — revenue by category
-            ForecastChart.tsx           # ComposedChart — historical + forecast
+            OrderVolumeChart.tsx
+            DeliveryPerformanceChart.tsx
+            CarrierBreakdownChart.tsx
+            CategoryRevenueChart.tsx
+            ForecastChart.tsx
             DynamicChart.tsx            # AI-driven: renders any chart type from ChartSpec
         dashboard/
             KPICards.tsx
             DashboardFilters.tsx
             DataTable.tsx
         query/
-            QueryInterface.tsx          # Chat-like input
-            QueryResult.tsx             # Shows answer + DynamicChart + ExplainabilityPanel
+            QueryInterface.tsx
+            QueryResult.tsx
             QueryHistory.tsx            # Bonus: persisted query history
-            ExplainabilityPanel.tsx     # Filters, metrics, query plan, raw data
+            ExplainabilityPanel.tsx
         layout/
             Sidebar.tsx
             Header.tsx
@@ -173,11 +180,11 @@ frontend/src/
         useForecast.ts
 
     stores/
-        useQueryHistoryStore.ts   # Zustand — persisted query history (bonus)
-        useFilterStore.ts         # Date range + carrier + region filters
+        useQueryHistoryStore.ts         # Zustand — persisted query history (bonus)
+        useFilterStore.ts
 
     types/
-        logistics.ts              # TypeScript interfaces mirroring API schemas
+        logistics.ts                    # TypeScript interfaces mirroring API schemas
 ```
 
 ---
@@ -188,71 +195,71 @@ CSV columns: `client_id, order_id, order_date, delivery_date, carrier, origin_ci
 
 Status values: `delivered`, `delayed`, `exception`, `in_transit`, `pending`
 
-Derived fields computed in `data/queries.py`:
-- `delivery_days` = `delivery_date - order_date`
-- `is_delayed` = `status == "delayed"`
-- `is_on_time` = `status == "delivered"`
+Derived fields computed in `data/queries.ts`:
+- `deliveryDays` = `(new Date(delivery_date) - new Date(order_date)) / 86_400_000`
+- `isDelayed` = `status === "delayed"`
+- `isOnTime` = `status === "delivered"`
 
 ---
 
-## LangGraph Workflow Nodes
+## LangGraph Workflow Nodes (JS/TS)
 
 ### guardrail (input)
-Checks: off-topic queries (non-logistics), prompt injection patterns. Blocks with 400 if violated.
+Pattern-based checks: off-topic queries (non-logistics), prompt injection. Blocks with HTTP 400 if violated.
 
 ### intent_detection
-LLM call with structured output. Determines:
-- `tool`: `"query"` | `"forecast"` | `"both"`
-- `query_params`: `{metric, dimension, time_range, filters}`
-- `forecast_params`: `{sku, category, horizon_months, method}`
-- `ambiguous`: bool — triggers clarification response if true
+LLM call with structured output (`withStructuredOutput()`). Determines:
+- `tool`: `"query"` | `"forecast"` | `"both"` | `"clarify"`
+- `queryParams`: `{metric, dimension, granularity, topN, timeRangeOverride}`
+- `forecastParams`: `{sku, category, horizonMonths, method}`
+- `ambiguous`: boolean — triggers clarification response if true
 
 ### query_tool
-Calls typed function from `data/queries.py` based on `query_params`. Returns `{data: list[dict], aggregation: str, filters_applied: dict}`.
+Calls typed function from `data/queries.ts` based on `queryParams`. Returns `{data: Row[], metric, filtersApplied}`.
 
 ### forecast_tool
-Calls `forecasting/engine.py` with `forecast_params`. Returns `{historical: list, forecast: list, method: str, inventory_recommendation: str}`.
+Calls `forecasting/engine.ts` with `forecastParams`. Returns `{historical, forecast, method, inventoryRecommendation}`.
 
 ### chart_selector
-Given result shape and dimension count, selects `chart_type`: `line | bar | pie | area | composed`. Returns `ChartSpec`.
+Given result shape and dimension count, selects `chartType`: `line | bar | pie | area | composed`. Returns `ChartSpec`.
 
 ### formatter
-Assembles final response: natural language answer + ChartSpec + ExplainabilityBlock (filters, metrics, query plan, data table).
+Assembles final response: LLM-generated natural language answer + ChartSpec + ExplainabilityBlock (filters, metrics, query plan, data table).
 
 ### guardrail (output)
-Safety screening of LLM-generated natural language answer.
+Safety screening of LLM-generated answer text.
 
 ---
 
 ## Engineering Standards
 
 ### Type Safety
-- Pydantic v2 for all API boundaries
-- TypedDict + strict types for LangGraph state
+- Zod schemas for all API input/output boundaries
+- TypeScript strict mode throughout backend
 - TypeScript strict mode on frontend
 
 ### Testing
-- pytest unit tests: `tests/unit/` — data queries, forecasting engine, guardrails (no LLM)
-- pytest integration tests: `tests/integration/` — full workflow with mock LLM
+- vitest unit tests: `tests/unit/` — data queries, forecasting engine, guardrails (no LLM)
+- vitest integration tests: `tests/integration/` — full workflow with mocked LLM
 
 ### Logging
-- structlog JSON — never `print()`
-- Request ID injected per API call
+- pino JSON logger — never `console.log()` in production code
+- Request ID injected per API call via Fastify request lifecycle
 
 ### Error Handling
-- Every LangGraph node catches exceptions, appends to `state["errors"]`
+- Every LangGraph node catches exceptions, appends to `state.errors`
 - Graceful degradation: if forecasting fails, returns query result only
 - Ambiguous queries return clarification prompt, not hallucinated data
 
 ### Security
-- No raw SQL or AI-generated code execution
-- All user input sanitized before pandas filtering
+- No eval(), no dynamic code execution from user input
+- All user input sanitized before data filtering
 - API key auth on all `/api/*` routes (`X-API-Key` header)
+- Fastify helmet for security headers
 - CORS restricted in production
 
 ### Caching (Bonus)
-- In-memory TTL cache (5 min) on NL query endpoint keyed by normalized query string
-- Prevents repeated LLM calls for identical questions
+- In-memory TTL cache (5 min) on NL query endpoint keyed by SHA-256 of normalized query + filters
 - Cache hit includes `"cached": true` in response
 
 ---
@@ -277,9 +284,32 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-4o-mini
 
 # API
-API_KEY=dev-secret-key
+API_KEYS=dev-secret-key:admin
 CORS_ORIGINS=http://localhost:3000
 
 # Data
 DATA_PATH=data/mock_logistics_data.csv
+
+# Cache
+QUERY_CACHE_TTL_SECONDS=300
 ```
+
+---
+
+## Running the Project
+
+```bash
+# 1. Copy env file and fill in values
+cp .env.sample .env
+
+# 2. Start everything (Ollama model is pulled automatically)
+docker compose up --build
+
+# 3. Access
+#   Frontend:  http://localhost:3000
+#   Backend:   http://localhost:8000
+#   API docs:  http://localhost:8000/documentation  (Fastify Swagger)
+#   Health:    http://localhost:8000/health
+```
+
+To switch LLM provider: set `LLM_PROVIDER=openai` (or `runpod`) and fill in the corresponding keys in `.env`.
