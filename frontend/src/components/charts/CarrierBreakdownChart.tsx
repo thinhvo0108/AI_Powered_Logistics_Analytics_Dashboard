@@ -48,7 +48,7 @@ export function CarrierBreakdownChart({ spec }: CarrierBreakdownChartProps) {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sortedData} layout="vertical" margin={{ top: 8, right: 32, left: 8, bottom: 0 }}>
+            <BarChart data={sortedData} layout="vertical" margin={{ top: 8, right: 44, left: 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 12, fill: "#64748b" }} />
               <YAxis

@@ -50,6 +50,11 @@ interface DynamicChartProps {
 
 function renderChart(spec: ChartSpec) {
   const margin = { top: 8, right: 16, left: 0, bottom: 0 };
+  // Bars near the axis max leave the outside-the-bar value label almost no
+  // room to render — a bigger margin on the side the label extends into
+  // keeps it from overflowing (and, in Recharts, silently disappearing).
+  const barMargin = { top: 24, right: 48, left: 0, bottom: 0 };
+  const composedMargin = { top: 24, right: 16, left: 0, bottom: 0 };
 
   switch (spec.chartType) {
     case "area":
@@ -77,7 +82,7 @@ function renderChart(spec: ChartSpec) {
     case "bar": {
       const vertical = spec.data.length > 6 && spec.series.length === 1;
       return (
-        <BarChart data={spec.data} layout={vertical ? "vertical" : "horizontal"} margin={margin}>
+        <BarChart data={spec.data} layout={vertical ? "vertical" : "horizontal"} margin={barMargin}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           {vertical ? (
             <>
@@ -162,7 +167,7 @@ function renderChart(spec: ChartSpec) {
 
     case "composed":
       return (
-        <ComposedChart data={spec.data} margin={margin}>
+        <ComposedChart data={spec.data} margin={composedMargin}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey={spec.xKey} tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
           <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
