@@ -27,11 +27,19 @@ export const ChartSpecSchema = z.object({
 });
 export type ChartSpec = z.infer<typeof ChartSpecSchema>;
 
+export const QueryPlanSchema = z.object({
+  steps: z.array(z.string()),
+  computation: z.string(),
+  dataShape: z.string(),
+  executionTimeMs: z.number(),
+});
+export type QueryPlan = z.infer<typeof QueryPlanSchema>;
+
 export const ExplainabilityBlockSchema = z.object({
   filtersApplied: z.record(z.string(), z.unknown()),
   metricsUsed: z.array(z.string()),
   dimensionsUsed: z.array(z.string()),
-  queryPlan: z.string(),
+  queryPlan: QueryPlanSchema,
   rowCount: z.number(),
 });
 export type ExplainabilityBlock = z.infer<typeof ExplainabilityBlockSchema>;

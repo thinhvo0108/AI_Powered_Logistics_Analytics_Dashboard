@@ -4,14 +4,21 @@ import { useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import { DataTable, type DataTableColumn } from "@/components/dashboard/DataTable";
-import type { ExplainabilityBlock, ToolUsed } from "@/types/logistics";
+import type { ExplainabilityBlock, QueryResponse, ToolUsed } from "@/types/logistics";
 
 interface ExplainabilityPanelProps {
   explainability: ExplainabilityBlock;
   dataTable: Record<string, unknown>[];
   toolUsed: ToolUsed;
   cached: boolean;
+  raw: QueryResponse;
 }
+
+const COMPUTATION_BADGE_CLASS: Record<string, string> = {
+  TypeScript: "border-blue-200 bg-blue-50 text-blue-600",
+  "simple-statistics": "border-purple-200 bg-purple-50 text-purple-600",
+  "Moving Average": "border-orange-200 bg-orange-50 text-orange-600",
+};
 
 const TOOL_BADGE_CLASS: Record<ToolUsed, string> = {
   query: "border-blue-200 bg-blue-50 text-blue-600",
@@ -40,6 +47,7 @@ export function ExplainabilityPanel({
   dataTable,
   toolUsed,
   cached,
+  raw,
 }: ExplainabilityPanelProps) {
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -123,9 +131,29 @@ export function ExplainabilityPanel({
             <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
               Query Plan
             </h4>
-            <pre className="overflow-x-auto rounded-md bg-slate-900 p-3 font-mono text-xs leading-relaxed text-slate-100">
-              {explainability.queryPlan}
-            </pre>
+            <div className="space-y-2 rounded-md border border-slate-100 bg-slate-50 p-3">
+              <ol className="list-inside list-decimal space-y-1 text-xs leading-relaxed text-slate-700">
+                {explainability.queryPlan.steps.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ol>
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <Badge
+                  className={
+                    COMPUTATION_BADGE_CLASS[explainability.queryPlan.computation] ??
+                    "border-slate-200 bg-slate-100 text-slate-600"
+                  }
+                >
+                  {explainability.queryPlan.computation}
+                </Badge>
+                <Badge className="border-slate-200 bg-slate-100 text-slate-600">
+                  {explainability.queryPlan.dataShape}
+                </Badge>
+                <Badge className="border-emerald-200 bg-emerald-50 text-emerald-600">
+                  Ran in {Math.round(explainability.queryPlan.executionTimeMs)}ms
+                </Badge>
+              </div>
+            </div>
           </section>
 
           {dataTable.length > 0 && (
@@ -150,6 +178,15 @@ export function ExplainabilityPanel({
               )}
             </section>
           )}
+
+          <details className="group">
+            <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">
+              Raw JSON
+            </summary>
+            <pre className="mt-2 max-h-96 overflow-auto rounded-md bg-slate-900 p-3 font-mono text-xs leading-relaxed text-slate-100">
+              {JSON.stringify(raw, null, 2)}
+            </pre>
+          </details>
         </div>
       )}
     </div>

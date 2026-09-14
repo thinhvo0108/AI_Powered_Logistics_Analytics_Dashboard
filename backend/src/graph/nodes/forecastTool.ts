@@ -22,6 +22,7 @@ function buildForecastChartSpec(
 }
 
 export async function forecastToolNode(state: AppState): Promise<Partial<AppState>> {
+  const start = performance.now();
   try {
     const forecastParams = state.forecastParams ?? {};
     const sku = forecastParams.sku as string | undefined;
@@ -49,6 +50,7 @@ export async function forecastToolNode(state: AppState): Promise<Partial<AppStat
         historical,
         forecast: result.forecast,
         inventoryRecommendation,
+        executionTimeMs: performance.now() - start,
       },
       chartSpec: buildForecastChartSpec(historical, result.forecast),
       toolUsed: "forecast",

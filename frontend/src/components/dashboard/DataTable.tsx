@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Download, Search } from "lucide-react";
 import { clsx } from "clsx";
 
 export interface DataTableColumn<T> {
@@ -42,12 +42,21 @@ export function DataTable<T extends Record<string, unknown>>({
 }: DataTableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDirection>("asc");
+  const [search, setSearch] = useState("");
+
+  const filteredData = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return data;
+    return data.filter((row) =>
+      columns.some((col) => String(row[col.key] ?? "").toLowerCase().includes(term))
+    );
+  }, [data, search, columns]);
 
   const sortedData = useMemo(() => {
-    if (!sortKey) return data;
-    const sorted = [...data].sort((a, b) => compareValues(a[sortKey], b[sortKey]));
+    if (!sortKey) return filteredData;
+    const sorted = [...filteredData].sort((a, b) => compareValues(a[sortKey], b[sortKey]));
     return sortDir === "asc" ? sorted : sorted.reverse();
-  }, [data, sortKey, sortDir]);
+  }, [filteredData, sortKey, sortDir]);
 
   const toggleSort = (key: string) => {
     if (sortKey !== key) {
@@ -77,19 +86,32 @@ export function DataTable<T extends Record<string, unknown>>({
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
         <span className="text-sm font-medium text-slate-600">
-          {data.length.toLocaleString()} row{data.length === 1 ? "" : "s"}
+          {sortedData.length.toLocaleString()} row{sortedData.length === 1 ? "" : "s"}
+          {search.trim() && ` (filtered from ${data.length.toLocaleString()})`}
         </span>
-        <button
-          type="button"
-          onClick={exportCsv}
-          disabled={data.length === 0}
-          className="flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search rows..."
+              className="w-40 rounded-md border border-slate-200 py-1.5 pl-8 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400 sm:w-56"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={sortedData.length === 0}
+            className="flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="overflow-auto" style={{ maxHeight }}>
@@ -138,7 +160,7 @@ export function DataTable<T extends Record<string, unknown>>({
                   colSpan={columns.length}
                   className="px-4 py-10 text-center text-sm text-slate-400"
                 >
-                  No data
+                  {search.trim() ? "No matching rows" : "No data"}
                 </td>
               </tr>
             ) : (

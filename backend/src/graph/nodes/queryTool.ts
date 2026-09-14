@@ -13,6 +13,7 @@ import {
 import logger from "../../core/logger.js";
 
 export async function queryToolNode(state: AppState): Promise<Partial<AppState>> {
+  const start = performance.now();
   try {
     const queryParams = state.queryParams ?? {};
     const metric = queryParams.metric as string;
@@ -73,6 +74,7 @@ export async function queryToolNode(state: AppState): Promise<Partial<AppState>>
         dimension: dimension ?? null,
         filtersApplied: filters,
         rowCount: data.length,
+        executionTimeMs: performance.now() - start,
       },
       toolUsed: "query",
     };

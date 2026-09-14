@@ -36,11 +36,18 @@ export interface ChartSpec {
   data: Record<string, unknown>[];
 }
 
+export interface QueryPlan {
+  steps: string[];
+  computation: string;
+  dataShape: string;
+  executionTimeMs: number;
+}
+
 export interface ExplainabilityBlock {
   filtersApplied: Record<string, unknown>;
   metricsUsed: string[];
   dimensionsUsed: string[];
-  queryPlan: string;
+  queryPlan: QueryPlan;
   rowCount: number;
 }
 

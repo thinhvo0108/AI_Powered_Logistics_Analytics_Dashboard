@@ -30,6 +30,7 @@ export function QueryResult({ result }: QueryResultProps) {
         dataTable={result.dataTable}
         toolUsed={result.toolUsed}
         cached={result.cached}
+        raw={result}
       />
     </div>
   );
