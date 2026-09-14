@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { QueryInterface } from "@/components/query/QueryInterface";
 import { QueryResult } from "@/components/query/QueryResult";
 import { QueryHistory } from "@/components/query/QueryHistory";
+import { ContextUsageBadge } from "@/components/query/ContextUsageBadge";
 import { ForecastChart } from "@/components/charts/ForecastChart";
 import { useSubmitQuery, useSuggestions } from "@/hooks/useQuery";
 import { useForecastCategories, useSubmitForecast } from "@/hooks/useForecast";
@@ -185,7 +186,15 @@ export default function QueryPage() {
 
   return (
     <div className="flex flex-col">
-      <Header title="AI Query" />
+      <Header
+        title="AI Query"
+        right={
+          <ContextUsageBadge
+            usedTurns={Math.min(conversation.length, MAX_HISTORY_TURNS)}
+            maxTurns={MAX_HISTORY_TURNS}
+          />
+        }
+      />
 
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
         <div className="flex flex-col gap-6">

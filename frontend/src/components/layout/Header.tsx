@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { clsx } from "clsx";
@@ -10,9 +10,11 @@ interface HeaderProps {
   breadcrumb?: string[];
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  /** Extra content rendered before the clock, e.g. a status badge. */
+  right?: ReactNode;
 }
 
-export function Header({ title, breadcrumb = [], onRefresh, isRefreshing = false }: HeaderProps) {
+export function Header({ title, breadcrumb = [], onRefresh, isRefreshing = false, right }: HeaderProps) {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export function Header({ title, breadcrumb = [], onRefresh, isRefreshing = false
       </div>
 
       <div className="flex items-center gap-4">
+        {right}
         <span className="text-sm text-slate-500">
           {now ? format(now, "MMM d, yyyy · h:mm a") : ""}
         </span>
