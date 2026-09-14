@@ -16,7 +16,10 @@ const INJECTION_PATTERNS = [
 
 const DOMAIN_KEYWORDS = new Set([
   "order",
+  "orders",
   "delivery",
+  "delayed",
+  "demand",
   "carrier",
   "shipment",
   "delay",
