@@ -8,7 +8,7 @@ import dashboardRoutes from "./api/routes/dashboard.js";
 import queryRoutes from "./api/routes/query.js";
 import forecastRoutes from "./api/routes/forecast.js";
 
-async function buildApp() {
+export async function buildApp() {
   const app = Fastify({ loggerInstance: logger });
 
   await app.register(cors, {
@@ -53,7 +53,9 @@ async function start(): Promise<void> {
   );
 }
 
-start().catch((error) => {
-  logger.error({ error }, "Failed to start server");
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+  start().catch((error) => {
+    logger.error({ error }, "Failed to start server");
+    process.exit(1);
+  });
+}
