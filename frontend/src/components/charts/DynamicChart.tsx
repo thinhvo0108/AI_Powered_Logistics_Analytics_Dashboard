@@ -17,8 +17,18 @@ import {
   YAxis,
   Tooltip,
   Legend,
+  LabelList,
 } from "recharts";
 import type { ChartSpec } from "@/types/logistics";
+
+// Metrics stored as a 0-100 percentage — shown on the bar as a 0-1 ratio to 3
+// decimal places (e.g. 22.45 -> "0.224") instead of the raw percentage.
+const RATIO_KEYS = new Set(["delayRate", "onTimeRate"]);
+
+function formatBarLabel(key: string, value: number | string): string {
+  const num = Number(value);
+  return RATIO_KEYS.has(key) ? (num / 100).toFixed(3) : num.toLocaleString();
+}
 
 const BRAND_PALETTE = [
   "#3b82f6",
@@ -92,7 +102,14 @@ function renderChart(spec: ChartSpec) {
           />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           {spec.series.map((s) => (
-            <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />
+            <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]}>
+              <LabelList
+                dataKey={s.key}
+                position={vertical ? "right" : "top"}
+                formatter={(value: number | string) => formatBarLabel(s.key, value)}
+                style={{ fontSize: 11, fill: "#475569" }}
+              />
+            </Bar>
           ))}
         </BarChart>
       );
@@ -158,7 +175,14 @@ function renderChart(spec: ChartSpec) {
             s.type === "line" ? (
               <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2} />
             ) : (
-              <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />
+              <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]}>
+                <LabelList
+                  dataKey={s.key}
+                  position="top"
+                  formatter={(value: number | string) => formatBarLabel(s.key, value)}
+                  style={{ fontSize: 11, fill: "#475569" }}
+                />
+              </Bar>
             )
           )}
         </ComposedChart>
