@@ -4,14 +4,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend/src:/app/src        # hot-reload in dev
       - ./backend/data:/app/data:ro   # read-only data
     environment:
       - NODE_ENV=development
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:latest}
       - RUNPOD_API_KEY=${RUNPOD_API_KEY:-}
       - RUNPOD_ENDPOINT_ID=${RUNPOD_ENDPOINT_ID:-}
@@ -38,12 +38,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:8000
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        - NEXT_PUBLIC_API_KEY=${API_KEY_CLIENT:-dev-secret-key}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_API_KEY=dev-secret-key
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NEXT_PUBLIC_API_KEY=${API_KEY_CLIENT:-dev-secret-key}
     depends_on:
       - backend
     restart: unless-stopped
