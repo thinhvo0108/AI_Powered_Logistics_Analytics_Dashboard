@@ -1,5 +1,14 @@
 # AI-Powered Logistics Analytics Dashboard
 
+## ✨ Highlights
+
+- **One command to run it all, locally.** `cp .env.sample .env && docker compose up --build` — that's it. Ollama is the default provider in `.env.sample`, so a local LLM comes up alongside the frontend and backend with zero edits and no API keys. See [Quick Start](#3-quick-start).
+- **Deterministic AI workflow.** The LLM only ever picks parameters (metric, dimension, time range) — every number on screen comes from typed TypeScript computation, never free-form generation. Genuinely ambiguous questions get a clarification instead of a guess, and off-topic small talk ("hi", "how are you?") gets a friendly reply instead of breaking the chat.
+- **LangGraph orchestration.** A multi-node graph (guardrails → intent detection → tool call → chart selection → formatting) routes every query, returning full explainability (filters, metrics, query plan) alongside the answer.
+- **Swappable LLM orchestrator.** Ollama (local, free), OpenAI, or RunPod (cloud GPU) — switch providers with one env var, no code changes.
+- **Guardrails on both sides.** Input is screened for prompt injection and off-topic requests before it reaches the LLM; output is screened for unsafe or advice-like phrasing.
+- **PII masking before any LLM call.** Emails, phone numbers, credit card numbers, SSNs, and IP addresses are stripped from user input before it's sent to the LLM — including cloud providers (OpenAI, RunPod) where that text would otherwise leave the machine.
+
 ## 1. Project Overview
 
 A full-stack analytics dashboard for logistics operations, combining descriptive KPIs, an AI-driven natural-language query interface, and per-SKU demand forecasting. The AI layer is a deterministic router — it interprets intent and selects parameters, but every number on screen comes from typed TypeScript computation, never from free-form LLM generation.
@@ -17,7 +26,8 @@ A full-stack analytics dashboard for logistics operations, combining descriptive
 git clone <repo-url>
 cd AI_Powered_Logistics_Analytics_Dashboard
 cp .env.sample .env
-# edit .env and set LLM_PROVIDER (ollama | runpod | openai)
+# Defaults to LLM_PROVIDER=ollama — no edits needed to run locally.
+# To use OpenAI or RunPod instead, edit .env and set LLM_PROVIDER + the matching API key.
 bash scripts/start.sh
 ```
 
@@ -67,7 +77,7 @@ Frontend (Next.js 15 + Tailwind + Recharts)
                 │
                 ▼
         [Input Guardrail]
-        (off-topic · injection)
+        (off-topic · injection · PII masking)
                 │
                 ▼
         LangGraph Workflow (@langchain/langgraph)
@@ -103,11 +113,12 @@ Frontend (Next.js 15 + Tailwind + Recharts)
 3. **Multi-LLM via one env var** — `LLM_PROVIDER` switches between Ollama (local), RunPod (cloud GPU, OpenAI-compatible), and OpenAI without touching application code.
 4. **Read-only data** — the CSV is parsed once into memory at startup as typed rows; nothing in the request path ever mutates it.
 5. **LangGraph JS for deterministic workflow** — each node (guardrail, intent, tool, formatter) is isolated and catches its own errors into `state.errors`, so a single node failure degrades gracefully instead of crashing the request.
+6. **PII masking before every LLM call** — emails, phone numbers, credit card numbers, SSNs, and IP addresses are stripped from the query text (and from replayed conversation history) in the input guardrail node, before it ever reaches Ollama/OpenAI/RunPod.
 
 ## 5. AI Approach
 
 - **Intent detection** — a single LLM call using `withStructuredOutput()` constrained by a Zod schema returns `{tool, queryParams, forecastParams, ambiguous}`. If `ambiguous` is true, the workflow short-circuits to a clarification response instead of guessing.
-- **Tool routing** — the detected `tool` (`query`, `forecast`, `both`, or `clarify`) determines which deterministic node(s) run; the LLM never touches the data directly.
+- **Tool routing** — the detected `tool` (`query`, `forecast`, `both`, `clarify`, or `smalltalk`) determines which deterministic node(s) run; the LLM never touches the data directly. `smalltalk` (greetings, thanks, "what can you do?") skips the data tools entirely and returns a friendly, on-brand reply instead of being rejected as off-topic.
 - **Explainability by design** — every response carries the filters applied, the metric computed, the query plan (which tool ran with which params), and the underlying data table, so the natural-language answer is always traceable back to a concrete computation.
 
 ## 6. Forecasting
@@ -133,7 +144,7 @@ Default lead time is 7 days and Z = 1.65 (≈95% service level).
 
 - **Static dataset** — the CSV is loaded once at process startup; new orders require a restart, there is no live ingestion.
 - **`delayed` = `status` field** — a shipment is considered delayed purely from the `status` column value, not from a computed date comparison against an SLA.
-- **Domain-only** — the guardrail only accepts queries that overlap a fixed logistics keyword set; general-purpose questions are rejected as off-topic by design.
+- **Domain-only** — the guardrail only accepts queries that overlap a fixed logistics keyword set (plus a narrow greeting/small-talk allowlist); general-purpose questions are rejected as off-topic by design.
 - **In-memory cache** — the query cache is process-local with no persistence or cross-instance sharing, so it resets on restart and doesn't scale horizontally.
 
 ## 8. Unsupported Queries
@@ -161,6 +172,7 @@ Default lead time is 7 days and Z = 1.65 (≈95% service level).
 | API framework | Fastify v5 |
 | Validation | Zod |
 | AI orchestration | LangGraph JS (`@langchain/langgraph`), `@langchain/ollama`, `@langchain/openai` |
+| Guardrails | Input off-topic/injection filtering, PII masking, output safety screening (`backend/src/guardrails/`) |
 | Data loading | csv-parse |
 | Forecasting | simple-statistics |
 | Logging | pino (JSON) |

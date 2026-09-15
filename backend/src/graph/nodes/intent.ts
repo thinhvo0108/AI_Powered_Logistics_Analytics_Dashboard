@@ -2,6 +2,7 @@ import { z } from "zod";
 import { AIMessage, HumanMessage, SystemMessage, type BaseMessage } from "@langchain/core/messages";
 import { getLLM } from "../../llm/client.js";
 import { getDateRange } from "../../data/loader.js";
+import { maskPII } from "../../guardrails/piiMask.js";
 import logger from "../../core/logger.js";
 import type { AppState } from "../state.js";
 
@@ -90,8 +91,8 @@ NEVER answer from memory. ALWAYS route to a tool.`;
  * follow-up references instead of judging each query in isolation. */
 function buildHistoryMessages(history: AppState["history"]): BaseMessage[] {
   return (history ?? []).flatMap((turn) => [
-    new HumanMessage(turn.query),
-    new AIMessage(turn.answer),
+    new HumanMessage(maskPII(turn.query)),
+    new AIMessage(maskPII(turn.answer)),
   ]);
 }
 
