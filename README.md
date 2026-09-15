@@ -5,7 +5,7 @@
 - **One command to run it all, locally.** `cp .env.sample .env && docker compose up --build` — that's it. Ollama is the default provider in `.env.sample`, so a local LLM comes up alongside the frontend and backend with zero edits and no API keys. See [Quick Start](#3-quick-start).
 - **Deterministic AI workflow.** The LLM only ever picks parameters (metric, dimension, time range) — every number on screen comes from typed TypeScript computation, never free-form generation. Genuinely ambiguous questions get a clarification instead of a guess, and off-topic small talk ("hi", "how are you?") gets a friendly reply instead of breaking the chat.
 - **LangGraph orchestration.** A multi-node graph (guardrails → intent detection → tool call → chart selection → formatting) routes every query, returning full explainability (filters, metrics, query plan) alongside the answer.
-- **Swappable LLM orchestrator.** Ollama (local, free), OpenAI, or RunPod (cloud GPU) — switch providers with one env var, no code changes.
+- **Swappable LLM orchestrator, with automatic fallback.** Ollama (local, free), OpenAI, or RunPod (cloud GPU) — switch providers with one env var, no code changes. Whichever provider is primary, a failed call (quota exceeded, endpoint unreachable, etc.) automatically retries once against local Ollama before giving up — on both local dev and production.
 - **Guardrails on both sides.** Input is screened for prompt injection and off-topic requests before it reaches the LLM; output is screened for unsafe or advice-like phrasing.
 - **PII masking before any LLM call.** Emails, phone numbers, credit card numbers, SSNs, and IP addresses are stripped from user input before it's sent to the LLM — including cloud providers (OpenAI, RunPod) where that text would otherwise leave the machine.
 - **Responsive UI.** Dashboard, AI Query chat, and charts all adapt down to mobile widths (collapsible sidebar, touch-friendly nav) — not just a desktop layout.
@@ -62,8 +62,8 @@ On every commit it runs ESLint + `tsc --noEmit` for whichever of `backend/`/`fro
 | Name | Description | Required/Optional | Default |
 |---|---|---|---|
 | `LLM_PROVIDER` | LLM backend: `ollama`, `runpod`, or `openai` | Required | `ollama` |
-| `OLLAMA_BASE_URL` | Ollama server URL | Required if `LLM_PROVIDER=ollama` | `http://ollama:11434` |
-| `OLLAMA_MODEL` | Ollama model tag | Required if `LLM_PROVIDER=ollama` | `llama3.2:latest` |
+| `OLLAMA_BASE_URL` | Ollama server URL | Required if `LLM_PROVIDER=ollama`; also used as the automatic fallback target when `LLM_PROVIDER` is `openai`/`runpod` (see [Key design decisions](#key-design-decisions)) | `http://ollama:11434` |
+| `OLLAMA_MODEL` | Ollama model tag | Same as above | `llama3.2:latest` |
 | `RUNPOD_API_KEY` | RunPod API key | Required if `LLM_PROVIDER=runpod` | — |
 | `RUNPOD_ENDPOINT_ID` | RunPod serverless endpoint ID | Required if `LLM_PROVIDER=runpod` | — |
 | `RUNPOD_MODEL` | Model served by the RunPod vLLM endpoint | Required if `LLM_PROVIDER=runpod` | `meta-llama/Llama-3.2-3B-Instruct` |
@@ -122,9 +122,10 @@ Frontend (Next.js 15 + Tailwind + Recharts)
 1. **AI as router, not oracle** — the LLM only interprets intent and picks tool parameters; it never produces the answer directly. All metrics, aggregations, and forecasts are computed by deterministic TypeScript.
 2. **No raw AI-generated code execution** — the model returns structured parameters (`queryParams`, `forecastParams`) via Zod schemas, never SQL, JS, or shell to execute.
 3. **Multi-LLM via one env var** — `LLM_PROVIDER` switches between Ollama (local), RunPod (cloud GPU, OpenAI-compatible), and OpenAI without touching application code.
-4. **Read-only data** — the CSV is parsed once into memory at startup as typed rows; nothing in the request path ever mutates it.
-5. **LangGraph JS for deterministic workflow** — each node (guardrail, intent, tool, formatter) is isolated and catches its own errors into `state.errors`, so a single node failure degrades gracefully instead of crashing the request.
-6. **PII masking before every LLM call** — emails, phone numbers, credit card numbers, SSNs, and IP addresses are stripped from the query text (and from replayed conversation history) in the input guardrail node, before it ever reaches Ollama/OpenAI/RunPod.
+4. **Ollama as a standing fallback** (`invokeWithFallback()` in `backend/src/llm/client.ts`) — every LLM call (intent detection, answer formatting) retries once against local Ollama if the primary provider throws. This applies regardless of which provider is primary, and regardless of environment (local Docker Compose or the EC2 deployment) — as long as an `ollama` container is running and reachable. If Ollama is already the primary provider, this is a no-op.
+5. **Read-only data** — the CSV is parsed once into memory at startup as typed rows; nothing in the request path ever mutates it.
+6. **LangGraph JS for deterministic workflow** — each node (guardrail, intent, tool, formatter) is isolated and catches its own errors into `state.errors`, so a single node failure degrades gracefully instead of crashing the request.
+7. **PII masking before every LLM call** — emails, phone numbers, credit card numbers, SSNs, and IP addresses are stripped from the query text (and from replayed conversation history) in the input guardrail node, before it ever reaches Ollama/OpenAI/RunPod.
 
 ## 5. AI Approach
 
