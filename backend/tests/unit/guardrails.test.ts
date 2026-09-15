@@ -68,6 +68,15 @@ describe("checkInput", () => {
     expect(result.passed).toBe(false);
     expect(result.violationType).toBe("injection");
   });
+
+  it.each(["hi", "hello!", "hey there", "how are you?", "what's up?", "thanks!", "goodbye"])(
+    "allows greeting/small-talk: %s",
+    (greeting) => {
+      const result = checkInput(greeting);
+
+      expect(result.passed).toBe(true);
+    }
+  );
 });
 
 describe("checkOutput", () => {

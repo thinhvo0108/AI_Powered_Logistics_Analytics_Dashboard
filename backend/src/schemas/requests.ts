@@ -23,7 +23,7 @@ export const ConversationTurnSchema = z.object({
 export type ConversationTurn = z.infer<typeof ConversationTurnSchema>;
 
 export const NLQueryRequestSchema = z.object({
-  query: z.string().min(3).max(500),
+  query: z.string().min(2).max(500),
   filters: FiltersSchema.default({}),
   // Prior turns in this conversation, oldest first — lets the LLM resolve
   // follow-ups ("what about UPS?") without treating each query in isolation.

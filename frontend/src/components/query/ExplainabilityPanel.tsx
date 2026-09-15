@@ -25,6 +25,7 @@ const TOOL_BADGE_CLASS: Record<ToolUsed, string> = {
   forecast: "border-purple-200 bg-purple-50 text-purple-600",
   both: "border-orange-200 bg-orange-50 text-orange-600",
   clarify: "border-slate-200 bg-slate-100 text-slate-600",
+  smalltalk: "border-slate-200 bg-slate-100 text-slate-600",
 };
 
 const PREVIEW_ROWS = 10;

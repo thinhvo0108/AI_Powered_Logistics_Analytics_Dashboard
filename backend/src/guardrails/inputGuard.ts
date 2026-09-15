@@ -56,6 +56,23 @@ const DOMAIN_KEYWORDS = new Set([
   "ontrac",
 ]);
 
+// Common greetings/small talk — allowed through even with no domain keywords so
+// intent detection can answer them warmly instead of the query pipeline
+// bouncing them as off-topic. Deliberately narrow: real off-topic questions
+// ("what's the best pizza place?") must still be rejected.
+const GREETING_PATTERNS = [
+  /^(hi+|he+y+|hello+|yo+|sup|howdy)(\s+\w+)?[!.]*\??$/,
+  /^good (morning|afternoon|evening)!*$/,
+  /^how are you( doing)?\??!*$/,
+  /^how('?s| is) it going\??!*$/,
+  /^what'?s up\??!*$/,
+  /^who are you\??!*$/,
+  /^what('?s| is) your name\??!*$/,
+  /^what can you (do|help with)\??!*$/,
+  /^thanks?!*$|^thank you!*$/,
+  /^bye!*$|^goodbye!*$|^see you!*$/,
+];
+
 export interface CheckInputOptions {
   /** True when this query follows earlier turns in the same conversation. Short
    * follow-ups ("what about UPS?", "and last quarter?") naturally carry none of
@@ -79,6 +96,11 @@ export function checkInput(query: string, options: CheckInputOptions = {}): Guar
   }
 
   if (options.hasContext) {
+    return { passed: true, violationType: null, detail: null };
+  }
+
+  const trimmed = lowered.trim();
+  if (GREETING_PATTERNS.some((pattern) => pattern.test(trimmed))) {
     return { passed: true, violationType: null, detail: null };
   }
 

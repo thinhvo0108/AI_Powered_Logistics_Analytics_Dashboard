@@ -78,7 +78,16 @@ export async function queryToolNode(state: AppState): Promise<Partial<AppState>>
         data = getTopDelayedRoutes(rows, filters, topN);
         break;
       default:
-        throw new Error(`Unknown metric: ${metric}`);
+        // Intent detection routed to "query" but couldn't fill in a valid
+        // metric — fall back to a clarification instead of surfacing a raw
+        // internal error string to the user.
+        return {
+          ambiguous: true,
+          clarificationPrompt:
+            "I couldn't tell what to measure from that question. Try asking about order volume, delay rates, carrier performance, revenue, or top delayed routes.",
+          queryResult: null,
+          toolUsed: "query",
+        };
     }
 
     return {

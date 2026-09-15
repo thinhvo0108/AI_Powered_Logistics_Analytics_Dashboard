@@ -30,7 +30,7 @@ const ForecastParamsSchema = z.object({
 });
 
 const IntentResultSchema = z.object({
-  tool: z.enum(["query", "forecast", "both", "clarify"]),
+  tool: z.enum(["query", "forecast", "both", "clarify", "smalltalk"]),
   queryParams: QueryParamsSchema.optional(),
   forecastParams: ForecastParamsSchema.optional(),
   ambiguous: z.boolean(),
@@ -51,7 +51,16 @@ Available tools:
 - query: historical analytics (KPIs, aggregations, breakdowns, comparisons)
 - forecast: predicting future demand for a SKU or category
 - both: question asks for both historical context AND a forecast
-- clarify: question is genuinely ambiguous — cannot route without clarification
+- clarify: question is genuinely about logistics data but ambiguous — cannot route
+  without clarification
+- smalltalk: greeting, small talk, thanks, or asking who/what you are — not a
+  logistics data question at all
+
+If tool is "smalltalk", set clarificationPrompt to a short, warm reply that introduces
+you as a logistics analytics assistant (order volumes, delays, carrier performance,
+demand forecasts) and mentions you may not be able to help with things outside that.
+Do NOT set ambiguous to true for smalltalk — ambiguous is only for genuinely unclear
+logistics questions that need "clarify".
 
 Only set queryParams.timeRangeOverride when the user explicitly names a date, month, or
 year. If they don't mention a time period, omit timeRangeOverride entirely so the query

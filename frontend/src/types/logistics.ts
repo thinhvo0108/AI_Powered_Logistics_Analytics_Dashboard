@@ -51,7 +51,7 @@ export interface ExplainabilityBlock {
   rowCount: number;
 }
 
-export type ToolUsed = "query" | "forecast" | "both" | "clarify";
+export type ToolUsed = "query" | "forecast" | "both" | "clarify" | "smalltalk";
 
 export interface ConversationTurn {
   query: string;

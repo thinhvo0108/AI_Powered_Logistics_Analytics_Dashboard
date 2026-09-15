@@ -73,6 +73,19 @@ export function QueryResult({ result, onSuggestionSelect }: QueryResultProps) {
     );
   }
 
+  if (result.toolUsed === "smalltalk") {
+    return (
+      <div className="animate-fade-in flex items-start gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+          <Bot className="h-4 w-4" />
+        </div>
+        <div className="rounded-2xl rounded-tl-sm border border-blue-100 bg-blue-50 px-4 py-3">
+          <p className="text-sm leading-relaxed text-blue-900">{result.answer}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in flex flex-col gap-4">
       {result.errors.length > 0 && (

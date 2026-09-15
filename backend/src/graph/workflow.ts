@@ -25,7 +25,7 @@ function buildWorkflow() {
     .addConditionalEdges(
       "intent_detection",
       (state: AppState) => {
-        if (state.ambiguous) return "formatter";
+        if (state.ambiguous || state.tool === "smalltalk") return "formatter";
         if (state.tool === "forecast") return "forecast_tool";
         return "query_tool";
       },

@@ -49,7 +49,7 @@ export const QueryResponseSchema = z.object({
   chart: ChartSpecSchema.nullable(),
   dataTable: z.array(z.record(z.string(), z.unknown())),
   explainability: ExplainabilityBlockSchema,
-  toolUsed: z.enum(["query", "forecast", "both", "clarify"]),
+  toolUsed: z.enum(["query", "forecast", "both", "clarify", "smalltalk"]),
   cached: z.boolean().default(false),
   errors: z.array(z.string()).default([]),
 });

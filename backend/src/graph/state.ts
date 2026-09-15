@@ -6,7 +6,7 @@ export const AppStateAnnotation = Annotation.Root({
   filters: Annotation<Record<string, unknown>>,
   guardrailPassed: Annotation<boolean>,
   guardrailViolation: Annotation<string | null>,
-  tool: Annotation<"query" | "forecast" | "both" | "clarify">,
+  tool: Annotation<"query" | "forecast" | "both" | "clarify" | "smalltalk">,
   queryParams: Annotation<Record<string, unknown>>,
   forecastParams: Annotation<Record<string, unknown>>,
   ambiguous: Annotation<boolean>,

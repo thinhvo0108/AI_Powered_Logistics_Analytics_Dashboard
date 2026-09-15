@@ -56,6 +56,9 @@ function buildNoDataAnswer(state: AppState): string {
   return "";
 }
 
+const DEFAULT_SMALLTALK_REPLY =
+  "Hi there! I'm a logistics analytics assistant — I can help with order volumes, delivery delays, carrier performance, and demand forecasts. For anything outside that, I may not have the ability to help.";
+
 function describeDataShape(data: Record<string, unknown>[] | undefined): string {
   if (!data || data.length === 0) return "empty array";
   return `Array<{ ${Object.keys(data[0]).join(", ")} }> × ${data.length}`;
@@ -129,6 +132,27 @@ function buildExplainability(state: AppState): ExplainabilityBlock {
 }
 
 export async function formatterNode(state: AppState): Promise<Partial<AppState>> {
+  if (state.tool === "smalltalk") {
+    return {
+      answer: state.clarificationPrompt ?? DEFAULT_SMALLTALK_REPLY,
+      toolUsed: "smalltalk",
+      dataTable: [],
+      chartSpec: null,
+      explainability: {
+        filtersApplied: {},
+        metricsUsed: [],
+        dimensionsUsed: [],
+        queryPlan: {
+          steps: ["Greeting or small talk — no data tool needed."],
+          computation: "N/A",
+          dataShape: "empty",
+          executionTimeMs: 0,
+        },
+        rowCount: 0,
+      },
+    };
+  }
+
   if (state.ambiguous) {
     return {
       answer: state.clarificationPrompt ?? "",
