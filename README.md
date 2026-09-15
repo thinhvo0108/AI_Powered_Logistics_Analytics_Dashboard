@@ -8,6 +8,7 @@
 - **Swappable LLM orchestrator.** Ollama (local, free), OpenAI, or RunPod (cloud GPU) — switch providers with one env var, no code changes.
 - **Guardrails on both sides.** Input is screened for prompt injection and off-topic requests before it reaches the LLM; output is screened for unsafe or advice-like phrasing.
 - **PII masking before any LLM call.** Emails, phone numbers, credit card numbers, SSNs, and IP addresses are stripped from user input before it's sent to the LLM — including cloud providers (OpenAI, RunPod) where that text would otherwise leave the machine.
+- **Responsive UI.** Dashboard, AI Query chat, and charts all adapt down to mobile widths (collapsible sidebar, touch-friendly nav) — not just a desktop layout.
 
 ## 1. Project Overview
 
@@ -156,6 +157,7 @@ Default lead time is 7 days and Z = 1.65 (≈95% service level).
 - **`delayed` = `status` field** — a shipment is considered delayed purely from the `status` column value, not from a computed date comparison against an SLA.
 - **Domain-only** — the guardrail only accepts queries that overlap a fixed logistics keyword set (plus a narrow greeting/small-talk allowlist); general-purpose questions are rejected as off-topic by design.
 - **In-memory cache** — the query cache is process-local with no persistence or cross-instance sharing, so it resets on restart and doesn't scale horizontally.
+- **No HTTPS** — the self-hosted (EC2) deployment currently serves plain HTTP on nonstandard ports. This is a scope/time tradeoff for this project, not an oversight — see [Future Improvements](#9-future-improvements).
 
 ## 8. Unsupported Queries
 
@@ -167,12 +169,15 @@ Default lead time is 7 days and Z = 1.65 (≈95% service level).
 
 ## 9. Future Improvements
 
-1. Swap the in-memory query cache for Redis to support multiple backend instances.
-2. Add a real ingestion pipeline (scheduled ETL or streaming) instead of a static CSV load.
-3. Compute delay against a per-carrier SLA threshold rather than relying solely on the `status` field.
-4. Add user-level query history persistence on the backend (currently client-side Zustand only).
-5. Expand forecasting with seasonal decomposition (e.g., Holt-Winters) for SKUs with strong seasonality.
-6. Add end-to-end tests against a real Ollama instance in CI, in addition to the mocked-LLM integration tests.
+1. **HTTPS** — put a reverse proxy (Caddy or nginx) or a load balancer in front of the EC2 deployment for a real domain + TLS certificate. Skipped for this project due to time, not difficulty.
+2. **Live updates via SSE** — push KPI/chart updates to the dashboard as new data lands, instead of the current poll-on-refresh model. Server-Sent Events fit this better than WebSockets here: the data only ever flows server→client (no client→server messages needed), and SSE is plain HTTP — cheaper to run and scale than holding a full-duplex WebSocket connection open per client.
+3. Swap the in-memory query cache for Redis to support multiple backend instances.
+4. Add a real ingestion pipeline (scheduled ETL or streaming) instead of a static CSV load.
+5. Compute delay against a per-carrier SLA threshold rather than relying solely on the `status` field.
+6. Add user-level query history persistence on the backend (currently client-side Zustand only).
+7. Expand forecasting with seasonal decomposition (e.g., Holt-Winters) for SKUs with strong seasonality.
+8. Add end-to-end tests against a real Ollama instance in CI, in addition to the mocked-LLM integration tests.
+9. **At real scale**, the current single-service backend could be split along domain boundaries (DDD-style bounded contexts — e.g. query/analytics, forecasting, ingestion as separate services) communicating via events rather than direct calls, deployed on an auto-scaling platform (ECS or Kubernetes) instead of a single Docker Compose host. Not something this dataset/traffic volume needs today — noted here as the natural next step if it ever did.
 
 ## 10. Tech Stack
 
