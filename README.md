@@ -36,6 +36,16 @@ bash scripts/start.sh
 - API docs: http://localhost:8000/documentation
 - Health check: http://localhost:8000/health
 
+### Deploying to AWS EC2 (self-hosted, with local Ollama)
+
+`docker-compose.prod.yml` is the production variant of the stack above (no dev bind-mounts, `restart: always`; Ollama is opt-in via the `with-ollama` Compose profile).
+
+1. Launch an Ubuntu 22.04/24.04 instance (`t3.large`/8GB RAM minimum for CPU inference) and paste [`scripts/ec2-user-data.sh`](scripts/ec2-user-data.sh) into the launch wizard's **User data** field — it installs Docker/Compose and a systemd unit that keeps the stack running across reboots. It deliberately does **not** clone the repo or embed any credentials (user data is readable via the instance metadata service).
+2. SSH in once and finish setup manually — clone the repo, `cp .env.sample .env` and set `CORS_ORIGINS`/`NEXT_PUBLIC_API_URL` to the box's public IP or domain (the latter is baked into the frontend at build time), then change `API_KEYS`/`NEXT_PUBLIC_API_KEY` from the dev defaults.
+3. Run [`scripts/deploy.sh`](scripts/deploy.sh) — builds and starts the stack; re-run it after every `git pull`.
+
+Security group: open 22 and 3000/8000 (or put a reverse proxy in front and open 80/443 instead) — never expose 11434 (Ollama) publicly.
+
 ### Git Hooks (pre-commit)
 
 Backend and frontend each have their own dependencies (`npm install` inside `backend/` and `frontend/`), plus a small root-level `package.json` that wires up a Husky pre-commit hook:
