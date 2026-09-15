@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import { ZodError } from "zod";
 import { config, parseApiKeys } from "./core/config.js";
 import logger from "./core/logger.js";
 import "./data/loader.js";
@@ -15,6 +16,24 @@ export async function buildApp() {
     origin: config.corsOrigins.split(",").map((origin) => origin.trim()),
   });
   await app.register(helmet);
+
+  // No route wraps its own Zod .parse(request.body/query) in a try/catch, so a
+  // malformed request throws all the way up here — turn that into a clean 400
+  // instead of Fastify's default 500 with a raw stringified ZodError.
+  app.setErrorHandler((error, _request, reply) => {
+    if (error instanceof ZodError) {
+      return reply.code(400).send({
+        error: error.issues.map((issue) => issue.message).join("; "),
+        details: error.issues.map((issue) => ({
+          path: issue.path.join(".") || undefined,
+          message: issue.message,
+        })),
+      });
+    }
+
+    logger.error({ err: error }, "Unhandled error");
+    return reply.code(500).send({ error: "Internal server error" });
+  });
 
   const apiKeys = parseApiKeys(config.apiKeys);
 

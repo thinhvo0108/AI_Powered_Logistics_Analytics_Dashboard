@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Plus, Sparkles, TrendingUp } from "lucide-react";
+import { ApiError } from "@/api/client";
 import { Header } from "@/components/layout/Header";
 import { QueryInterface } from "@/components/query/QueryInterface";
 import { QueryResult } from "@/components/query/QueryResult";
@@ -34,13 +35,29 @@ function ForecastSection() {
   const [horizon, setHorizon] = useState(3);
   const [method, setMethod] = useState<ForecastMethod>("auto");
 
+  // The API requires a specific sku or category — there's no "all categories"
+  // forecast — so default to the first one as soon as the list loads instead
+  // of leaving an unsubmittable placeholder selected.
+  useEffect(() => {
+    if (!category && categories && categories.length > 0) {
+      setCategory(categories[0]);
+    }
+  }, [category, categories]);
+
   const handleRunForecast = () => {
+    if (!category) return;
     mutate({
-      category: category || undefined,
+      category,
       horizonMonths: horizon,
       method,
     });
   };
+
+  const errorMessage = error
+    ? error instanceof ApiError
+      ? error.message
+      : "Failed to run forecast. Please try again."
+    : null;
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4">
@@ -57,7 +74,6 @@ function ForecastSection() {
             onChange={(e) => setCategory(e.target.value)}
             className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700"
           >
-            <option value="">All categories</option>
             {(categories ?? []).map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -98,7 +114,7 @@ function ForecastSection() {
         <button
           type="button"
           onClick={handleRunForecast}
-          disabled={isPending}
+          disabled={isPending || !category}
           className="ml-auto flex h-9 items-center gap-1.5 rounded-md bg-blue-600 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -106,9 +122,7 @@ function ForecastSection() {
         </button>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600">Failed to run forecast. Please try again.</p>
-      )}
+      {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
 
       {forecastResult && (
         <div className="flex flex-col gap-3">
