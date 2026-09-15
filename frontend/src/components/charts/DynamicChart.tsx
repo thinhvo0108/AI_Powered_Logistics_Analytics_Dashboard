@@ -81,26 +81,37 @@ function renderChart(spec: ChartSpec) {
 
     case "bar": {
       const vertical = spec.data.length > 6 && spec.series.length === 1;
+
+      if (vertical) {
+        return (
+          <BarChart data={spec.data} layout="vertical" margin={barMargin}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis type="number" tick={{ fontSize: 12, fill: "#64748b" }} />
+            <YAxis type="category" dataKey={spec.xKey} tick={{ fontSize: 12, fill: "#64748b" }} width={120} />
+            <Tooltip
+              cursor={{ fill: "#3b82f6", fillOpacity: 0.06 }}
+              contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            {spec.series.map((s) => (
+              <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]}>
+                <LabelList
+                  dataKey={s.key}
+                  position="right"
+                  formatter={(value: number | string) => formatBarLabel(s.key, value)}
+                  style={{ fontSize: 11, fill: "#475569" }}
+                />
+              </Bar>
+            ))}
+          </BarChart>
+        );
+      }
+
       return (
-        <BarChart data={spec.data} layout={vertical ? "vertical" : "horizontal"} margin={barMargin}>
+        <BarChart data={spec.data} layout="horizontal" margin={barMargin}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-          {vertical ? (
-            <>
-              <XAxis type="number" tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
-              <YAxis
-                type="category"
-                dataKey={spec.xKey}
-                tick={{ fontSize: 12, fill: "#64748b" }}
-                tickFormatter={tickFormatter}
-                width={120}
-              />
-            </>
-          ) : (
-            <>
-              <XAxis dataKey={spec.xKey} tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
-              <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
-            </>
-          )}
+          <XAxis dataKey={spec.xKey} tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
+          <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={tickFormatter} />
           <Tooltip
             cursor={{ fill: "#3b82f6", fillOpacity: 0.06 }}
             contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0", fontSize: 13 }}
@@ -110,7 +121,7 @@ function renderChart(spec: ChartSpec) {
             <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]}>
               <LabelList
                 dataKey={s.key}
-                position={vertical ? "right" : "top"}
+                position="top"
                 formatter={(value: number | string) => formatBarLabel(s.key, value)}
                 style={{ fontSize: 11, fill: "#475569" }}
               />
