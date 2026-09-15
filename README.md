@@ -16,8 +16,8 @@ A full-stack analytics dashboard for logistics operations, combining descriptive
 
 ## 2. Live Demo
 
-- **Deployed URL:** [Deployed URL]
-- **Test credentials:** `X-API-Key: dev-secret-key`
+- **Deployed URL:** http://13.229.105.177:3000 (self-hosted on AWS EC2 — see [Deploying to AWS EC2](#deploying-to-aws-ec2-self-hosted-with-local-ollama); no HTTPS yet, see [Assumptions & Limitations](#7-assumptions--limitations))
+- **Test credentials:** `X-API-Key: dev-secret-key` (for local `docker compose` only — the live demo above uses its own production key, not published here)
 
 ## 3. Quick Start
 
