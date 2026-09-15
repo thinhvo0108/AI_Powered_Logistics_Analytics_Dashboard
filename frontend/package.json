@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "test": "vitest"
   },
@@ -38,6 +38,7 @@
     "vitest": "^2.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^15.3.0"
+    "eslint-config-next": "^15.3.0",
+    "@eslint/eslintrc": "^3.3.0"
   }
 }

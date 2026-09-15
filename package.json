@@ -1,0 +1,12 @@
+{
+  "name": "logistics-analytics-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Root package for repo-wide tooling (git hooks). Backend and frontend are separate npm projects.",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.0"
+  }
+}

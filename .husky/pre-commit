@@ -1,0 +1,57 @@
+#!/usr/bin/env sh
+# Runs frontend or backend lint + type-check based on which files are staged.
+# Installed automatically via `npm install` at the repo root (husky's `prepare` script).
+set -e
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+
+BACKEND_CHANGED=$(echo "$STAGED" | grep -E '^backend/.*\.tsx?$' || true)
+FRONTEND_CHANGED=$(echo "$STAGED" | grep -E '^frontend/.*\.tsx?$' || true)
+
+FAILED=0
+
+# ── Backend: ESLint + TypeScript type-check ──────────────────────────────────
+if [ -n "$BACKEND_CHANGED" ]; then
+  echo "▶ backend files staged — running lint + type-check..."
+
+  if (cd backend && npm run lint --silent); then
+    echo "  ✓ lint passed"
+  else
+    echo "  ✗ lint failed"
+    FAILED=1
+  fi
+
+  if (cd backend && npm run type-check --silent); then
+    echo "  ✓ type-check passed"
+  else
+    echo "  ✗ type-check failed"
+    FAILED=1
+  fi
+fi
+
+# ── Frontend: ESLint + TypeScript type-check ─────────────────────────────────
+if [ -n "$FRONTEND_CHANGED" ]; then
+  echo "▶ frontend files staged — running lint + type-check..."
+
+  if (cd frontend && npm run lint --silent); then
+    echo "  ✓ lint passed"
+  else
+    echo "  ✗ lint failed"
+    FAILED=1
+  fi
+
+  if (cd frontend && npm run type-check --silent); then
+    echo "  ✓ type-check passed"
+  else
+    echo "  ✗ type-check failed"
+    FAILED=1
+  fi
+fi
+
+if [ "$FAILED" -ne 0 ]; then
+  echo ""
+  echo "Pre-commit checks failed. Fix the issues above and re-stage your files."
+  exit 1
+fi
+
+exit 0

@@ -26,6 +26,16 @@ bash scripts/start.sh
 - API docs: http://localhost:8000/documentation
 - Health check: http://localhost:8000/health
 
+### Git Hooks (pre-commit)
+
+Backend and frontend each have their own dependencies (`npm install` inside `backend/` and `frontend/`), plus a small root-level `package.json` that wires up a Husky pre-commit hook:
+
+```bash
+npm install   # from the repo root, once per clone
+```
+
+On every commit it runs ESLint + `tsc --noEmit` for whichever of `backend/`/`frontend/` has staged changes, and blocks the commit if either fails.
+
 ### Environment Variables
 
 | Name | Description | Required/Optional | Default |
@@ -162,6 +172,7 @@ Default lead time is 7 days and Z = 1.65 (≈95% service level).
 | Client state | Zustand |
 | Icons | Lucide React |
 | Infrastructure | Docker Compose (dev + prod) |
+| Git hooks | Husky (pre-commit lint + type-check) |
 
 ---
 
