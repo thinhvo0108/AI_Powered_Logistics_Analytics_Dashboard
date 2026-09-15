@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { RotateCcw } from "lucide-react";
+import { Menu, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { clsx } from "clsx";
+import { useSidebarStore } from "@/stores/useSidebarStore";
 
 interface HeaderProps {
   title: string;
@@ -16,6 +17,7 @@ interface HeaderProps {
 
 export function Header({ title, breadcrumb = [], onRefresh, isRefreshing = false, right }: HeaderProps) {
   const [now, setNow] = useState<Date | null>(null);
+  const openSidebar = useSidebarStore((state) => state.open);
 
   useEffect(() => {
     setNow(new Date());
@@ -24,19 +26,30 @@ export function Header({ title, breadcrumb = [], onRefresh, isRefreshing = false
   }, []);
 
   return (
-    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-      <div>
-        {breadcrumb.length > 0 && (
-          <nav className="mb-0.5 text-xs text-slate-400">
-            {breadcrumb.join(" / ")}
-          </nav>
-        )}
-        <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
+    <header className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-4 md:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={openSidebar}
+          aria-label="Open menu"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 md:hidden"
+        >
+          <Menu className="h-4 w-4" />
+        </button>
+
+        <div className="min-w-0">
+          {breadcrumb.length > 0 && (
+            <nav className="mb-0.5 truncate text-xs text-slate-400">
+              {breadcrumb.join(" / ")}
+            </nav>
+          )}
+          <h1 className="truncate text-xl font-semibold text-slate-900">{title}</h1>
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-4">
         {right}
-        <span className="text-sm text-slate-500">
+        <span className="hidden text-sm text-slate-500 sm:inline">
           {now ? format(now, "MMM d, yyyy · h:mm a") : ""}
         </span>
         <button
