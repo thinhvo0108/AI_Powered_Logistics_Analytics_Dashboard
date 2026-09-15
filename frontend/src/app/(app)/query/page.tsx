@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Plus, Sparkles, TrendingUp } from "lucide-react";
 import { ApiError } from "@/api/client";
+import { generateId } from "@/lib/id";
 import { Header } from "@/components/layout/Header";
 import { QueryInterface } from "@/components/query/QueryInterface";
 import { QueryResult } from "@/components/query/QueryResult";
@@ -153,7 +154,7 @@ export default function QueryPage() {
   // One id per conversation — every turn rolls into the same sidebar history
   // entry instead of creating a new one each time. Starting a new conversation
   // swaps this for a fresh id, same as reloading the page.
-  const [conversationId, setConversationId] = useState(() => crypto.randomUUID());
+  const [conversationId, setConversationId] = useState(() => generateId());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -162,7 +163,7 @@ export default function QueryPage() {
 
   const startNewConversation = () => {
     setConversation([]);
-    setConversationId(crypto.randomUUID());
+    setConversationId(generateId());
     setInput("");
   };
 
@@ -178,7 +179,7 @@ export default function QueryPage() {
       { query, filters, history },
       {
         onSuccess: (data) => {
-          setConversation((prev) => [...prev, { id: crypto.randomUUID(), query, result: data }]);
+          setConversation((prev) => [...prev, { id: generateId(), query, result: data }]);
           recordTurn(conversationId, {
             query,
             answer: data.answer,
