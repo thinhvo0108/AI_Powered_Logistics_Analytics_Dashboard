@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AIMessage, HumanMessage, SystemMessage, type BaseMessage } from "@langchain/core/messages";
-import { getLLM } from "../../llm/client.js";
+import { invokeWithFallback } from "../../llm/client.js";
 import { getDateRange } from "../../data/loader.js";
 import { maskPII } from "../../guardrails/piiMask.js";
 import logger from "../../core/logger.js";
@@ -98,12 +98,14 @@ function buildHistoryMessages(history: AppState["history"]): BaseMessage[] {
 
 export async function intentDetectionNode(state: AppState): Promise<Partial<AppState>> {
   try {
-    const structuredLLM = getLLM().withStructuredOutput(IntentResultSchema, { method: "jsonSchema" });
-    const result = await structuredLLM.invoke([
+    const messages = [
       new SystemMessage(buildSystemPrompt()),
       ...buildHistoryMessages(state.history),
       new HumanMessage(state.query),
-    ]);
+    ];
+    const result = await invokeWithFallback((llm) =>
+      llm.withStructuredOutput(IntentResultSchema, { method: "jsonSchema" }).invoke(messages)
+    );
 
     return {
       tool: result.tool,

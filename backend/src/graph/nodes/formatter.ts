@@ -1,7 +1,7 @@
 import { HumanMessage } from "@langchain/core/messages";
 import type { AppState } from "../state.js";
 import type { ExplainabilityBlock } from "../../schemas/responses.js";
-import { getLLM } from "../../llm/client.js";
+import { invokeWithFallback } from "../../llm/client.js";
 import { checkOutput } from "../../guardrails/outputGuard.js";
 import logger from "../../core/logger.js";
 
@@ -180,8 +180,7 @@ export async function formatterNode(state: AppState): Promise<Partial<AppState>>
     let answer = "";
 
     if (prompt) {
-      const llm = getLLM(0.3);
-      const response = await llm.invoke([new HumanMessage(prompt)]);
+      const response = await invokeWithFallback((llm) => llm.invoke([new HumanMessage(prompt)]), 0.3);
       const raw =
         typeof response.content === "string" ? response.content : JSON.stringify(response.content);
       answer = checkOutput(raw);

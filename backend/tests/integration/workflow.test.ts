@@ -8,14 +8,24 @@ const INTENT_RESULT = {
 };
 const ANSWER = "FedEx has the highest delay rate at 18%.";
 
-vi.mock("../../src/llm/client.js", () => ({
-  getLLM: vi.fn(() => ({
+vi.mock("../../src/llm/client.js", () => {
+  const getLLM = vi.fn(() => ({
     withStructuredOutput: vi.fn(() => ({
       invoke: vi.fn().mockResolvedValue(INTENT_RESULT),
     })),
     invoke: vi.fn().mockResolvedValue({ content: ANSWER }),
-  })),
-}));
+  }));
+
+  return {
+    getLLM,
+    // Mirrors the real happy-path behavior: call the invocation with the
+    // primary (mocked) model and return its result — no fallback needed
+    // since the mock never throws.
+    invokeWithFallback: vi.fn((invocation: (llm: ReturnType<typeof getLLM>) => unknown) =>
+      invocation(getLLM())
+    ),
+  };
+});
 
 const API_KEY = "dev-secret-key";
 

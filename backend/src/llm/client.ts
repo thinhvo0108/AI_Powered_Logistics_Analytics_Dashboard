@@ -47,6 +47,47 @@ export function getLLM(temperature = 0): BaseChatModel {
   }
 }
 
+function getOllamaFallback(temperature: number): BaseChatModel {
+  return new ChatOllama({
+    baseUrl: config.ollamaBaseUrl,
+    model: config.ollamaModel,
+    temperature,
+  });
+}
+
+/**
+ * Runs an LLM call against the configured provider, retrying once against the
+ * local Ollama instance if the primary call throws (e.g. OpenAI quota
+ * exhausted, RunPod endpoint unreachable). No-op passthrough when Ollama is
+ * already the primary provider — there's no different fallback to retry with.
+ *
+ * `invocation` receives whichever chat model to use and performs the actual
+ * `.invoke()` (optionally via `.withStructuredOutput()` first) — this keeps
+ * the fallback logic in one place while call sites keep their own usage
+ * pattern (plain invoke vs. structured output).
+ */
+export async function invokeWithFallback<T>(
+  invocation: (llm: BaseChatModel) => Promise<T>,
+  temperature = 0
+): Promise<T> {
+  const primary = getLLM(temperature);
+
+  try {
+    return await invocation(primary);
+  } catch (error) {
+    if (config.llmProvider === "ollama") {
+      throw error;
+    }
+
+    logger.warn(
+      { err: error, provider: config.llmProvider },
+      "Primary LLM call failed, retrying with Ollama fallback"
+    );
+
+    return await invocation(getOllamaFallback(temperature));
+  }
+}
+
 /**
  * Lightweight connectivity probe used by /health. A failure here means the
  * configured provider is unreachable or misconfigured, not that the app is down.
